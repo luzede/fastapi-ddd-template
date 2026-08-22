@@ -1,12 +1,6 @@
 {
   "version": 1,
   "skills": {
-    "api-design": {
-      "source": "yonatangross/orchestkit",
-      "sourceType": "github",
-      "skillPath": "plugins/ork/skills/api-design/SKILL.md",
-      "computedHash": "7314cbee0328d22a03cebad6135f21954433599efd265c8ee4959737d5a1987f"
-    },
     "python-backend": {
       "source": "yonatangross/orchestkit",
       "sourceType": "github",
