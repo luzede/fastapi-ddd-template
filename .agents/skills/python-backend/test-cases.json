@@ -1,0 +1,126 @@
+{
+  "skill": "python-backend",
+  "version": "2.0.0",
+  "testCases": [
+    {
+      "id": "asyncio-taskgroup",
+      "rule": "asyncio-taskgroup",
+      "query": "Run multiple HTTP requests concurrently with error handling",
+      "expectedBehavior": [
+        "Uses asyncio.TaskGroup for structured concurrency with automatic child task cleanup",
+        "Wraps the task group in asyncio.timeout for enforcing a deadline",
+        "Handles ExceptionGroup with except* syntax for granular per-exception error recovery"
+      ]
+    },
+    {
+      "id": "asyncio-structured",
+      "rule": "asyncio-structured",
+      "query": "Implement a rate-limited async HTTP client",
+      "expectedBehavior": [
+        "Uses asyncio.Semaphore for concurrency limiting to cap simultaneous active requests",
+        "Combines with TaskGroup for batch processing",
+        "Uses asyncio.to_thread for bridging synchronous blocking calls into async code"
+      ]
+    },
+    {
+      "id": "asyncio-cancellation",
+      "rule": "asyncio-cancellation",
+      "query": "Handle task cancellation with proper cleanup",
+      "expectedBehavior": [
+        "Re-raises CancelledError after performing cleanup to propagate cancellation correctly",
+        "Uses try/finally blocks for guaranteed resource release during task cancellation",
+        "Never swallows CancelledError so that the event loop can propagate cancellation properly"
+      ]
+    },
+    {
+      "id": "fastapi-dependencies",
+      "rule": "fastapi-dependencies",
+      "query": "Create FastAPI dependency injection for services",
+      "expectedBehavior": [
+        "Uses Depends() for injecting database sessions into route handler functions",
+        "Creates class-based service dependencies with configurable initialization parameters",
+        "Implements an authentication dependency chain that validates tokens before injecting the user"
+      ]
+    },
+    {
+      "id": "fastapi-middleware",
+      "rule": "fastapi-middleware",
+      "query": "Add request ID and timing middleware to FastAPI",
+      "expectedBehavior": [
+        "Creates RequestIDMiddleware with header propagation for end-to-end request tracing",
+        "Adds TimingMiddleware that sets the X-Response-Time header on every response",
+        "Orders middleware correctly: CORS -> RequestID -> Timing -> Logging"
+      ]
+    },
+    {
+      "id": "fastapi-background",
+      "rule": "fastapi-background",
+      "query": "Configure FastAPI lifespan with health checks",
+      "expectedBehavior": [
+        "Uses asynccontextmanager for lifespan management of startup and shutdown resources",
+        "Initializes DB engine and Redis in startup",
+        "Implements health check endpoint verifying all dependencies"
+      ]
+    },
+    {
+      "id": "sqlalchemy-sessions",
+      "rule": "sqlalchemy-sessions",
+      "query": "Set up async SQLAlchemy sessions with FastAPI",
+      "expectedBehavior": [
+        "Creates the SQLAlchemy engine with pool_pre_ping=True for stale connection detection",
+        "Uses async_sessionmaker with expire_on_commit=False to access attributes after commit",
+        "Implements a get_db dependency that handles commit on success and rollback on failure"
+      ]
+    },
+    {
+      "id": "sqlalchemy-relationships",
+      "rule": "sqlalchemy-relationships",
+      "query": "Define SQLAlchemy models with eager loading",
+      "expectedBehavior": [
+        "Uses Mapped type annotations for explicit column and relationship type declarations",
+        "Sets lazy='raise' on relationships to prevent accidental implicit lazy loading queries",
+        "Uses selectinload for eager loading to fetch related objects in a single query"
+      ]
+    },
+    {
+      "id": "sqlalchemy-migrations",
+      "rule": "sqlalchemy-migrations",
+      "query": "Implement bulk operations and repository pattern",
+      "expectedBehavior": [
+        "Creates a generic AsyncRepository base class with reusable CRUD operations",
+        "Chunks bulk inserts for memory management",
+        "Uses flush() for ID generation without commit"
+      ]
+    },
+    {
+      "id": "pooling-database",
+      "rule": "pooling-database",
+      "query": "Configure database connection pooling for production",
+      "expectedBehavior": [
+        "Sets pool_size, max_overflow, and pool_pre_ping for reliable connection pool configuration",
+        "Configures pool_recycle and pool_timeout to handle stale connections and limit wait times",
+        "Uses a pool sizing formula based on expected concurrent requests and query duration"
+      ]
+    },
+    {
+      "id": "pooling-http",
+      "rule": "pooling-http",
+      "query": "Set up aiohttp session with connection limits",
+      "expectedBehavior": [
+        "Configures TCPConnector with limit and limit_per_host",
+        "Sets proper timeouts (total, connect, sock_read)",
+        "Creates session at startup, closes at shutdown"
+      ]
+    },
+    {
+      "id": "pooling-tuning",
+      "rule": "pooling-tuning",
+      "query": "Diagnose and fix connection pool exhaustion",
+      "expectedBehavior": [
+        "Adds connection checkout and checkin event listeners for pool utilization monitoring",
+        "Implements retry logic for stale connections",
+        "Uses Prometheus metrics for pool monitoring"
+      ]
+    }
+  ]
+}
