@@ -1,12 +1,18 @@
 """FastAPI exception handlers emitting RFC 9457 problem detail responses."""
 
-from fastapi import FastAPI, HTTPException, Request
+from http import HTTPStatus
+
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic_core import ErrorDetails
 
+# Base class of fastapi.HTTPException; registering it catches router 404/405 too
+from starlette.exceptions import HTTPException
+
 from app.shared.exceptions.enums import ProblemType
 from app.shared.exceptions.exceptions import (
+    AuthenticationError,
     ProblemDetailException,
     ValidationError,
 )
@@ -69,19 +75,41 @@ async def http_exception_handler(
     request: Request,
     exc: HTTPException,
 ) -> JSONResponse:
-    """Handle FastAPI HTTPException errors."""
+    """Handle Starlette/FastAPI HTTPException errors."""
 
-    problem_detail_exception = ProblemDetailException(
-        title="HTTP Exception",
-        status=exc.status_code,
-        type="about:blank",
-        detail=exc.detail,
-    )
+    # Map every 401 to the typed problem URI, regardless of how it was raised
+    if exc.status_code == 401:
+        authentication_error = AuthenticationError(
+            detail=exc.detail,
+        )
+        response = await problem_exception_handler(
+            request,
+            authentication_error,
+        )
+    else:
+        # RFC 9457 §4.2: 'about:blank' pairs with the HTTP status phrase as title
+        try:
+            title = HTTPStatus(exc.status_code).phrase
+        except ValueError:
+            title = "Unknown Error"
 
-    return await problem_exception_handler(
-        request,
-        problem_detail_exception,
-    )
+        problem_detail_exception = ProblemDetailException(
+            title=title,
+            status=exc.status_code,
+            type="about:blank",
+            detail=None if exc.status_code >= 500 else exc.detail,
+        )
+
+        response = await problem_exception_handler(
+            request,
+            problem_detail_exception,
+        )
+
+    # RFC 9110: 401 requires WWW-Authenticate, 405 requires Allow
+    if exc.headers:
+        response.headers.update(exc.headers)
+
+    return response
 
 
 async def generic_exception_handler(

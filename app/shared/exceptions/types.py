@@ -1,7 +1,10 @@
 """TypedDict contracts for RFC 9457 problem detail payloads."""
 
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired
+
+# typing.TypedDict lacks PEP 728 extra_items before Python 3.15
+from typing_extensions import TypedDict
 
 
 class ProblemDetailPayload(TypedDict, extra_items=Any):
@@ -43,7 +46,7 @@ class ProblemDetailExceptionExtensionsDict(TypedDict, total=False):
     conflicting_field: str | None
 
     # Rate limit-specific extensions
-    retry_after: int
+    retry_after: int | None
     limit: int
     window: str
 

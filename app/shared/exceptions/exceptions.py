@@ -1,8 +1,7 @@
 """Exception hierarchy rendering as RFC 9457 Problem Detail."""
 
-import typing
 from datetime import UTC, datetime
-from typing import Literal, Unpack
+from typing import Literal, Unpack, cast
 
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -44,7 +43,7 @@ class ProblemDetailException(Exception):
     def to_problem_detail(self) -> ProblemDetailPayloadWithCommonExtensions:
         """Convert to Problem Detail dict."""
 
-        none_ommitted_extensions = typing.cast(
+        none_ommitted_extensions = cast(
             ProblemExceptionExtensionsPayload,
             jsonable_encoder(self.extensions, exclude_none=True),
         )
@@ -67,11 +66,10 @@ class ProblemDetailException(Exception):
     def to_json_response(self) -> JSONResponse:
         headers: dict[str, str] = {}
 
-        # RFC 9110 Section 10.2.3: Retry-After header for 429 Too Many Requests
+        # RFC 9110 §10.2.3: Retry-After applies to 429 and 503 responses
         # https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3
         # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
         if self.extensions.get("retry_after") is not None:
-            # Add 'Retry-After' header for rate limit errors
             headers = {"Retry-After": str(self.extensions["retry_after"])}
 
         return JSONResponse(
@@ -198,10 +196,15 @@ class InternalError(ProblemDetailException):
 class ServiceUnavailableError(ProblemDetailException):
     """Service temporarily unavailable error."""
 
-    def __init__(self, detail: str = "Service is temporarily unavailable"):
+    def __init__(
+        self,
+        detail: str = "Service is temporarily unavailable",
+        retry_after: int | None = None,
+    ):
         super().__init__(
             status=503,
             type=ProblemType.SERVICE_UNAVAILABLE,
             title="Service Unavailable",
             detail=detail,
+            retry_after=retry_after,
         )
