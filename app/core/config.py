@@ -1,16 +1,33 @@
 from functools import lru_cache
 
+from pydantic import BaseModel, Secret
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+class DatabaseSettings(BaseModel):
+    host: str = "localhost"
+    port: int = 5432
+    username: str
+    password: Secret[str]
+    name: str
+    echo: bool = False
 
-    # App
-    app_database_url: str = "sqlite+aiosqlite:///app.sqlite"
-    host: str = "127.0.0.1"
+
+class ServerSettings(BaseModel):
+    host: str = "localhost"
     port: int = 8000
-    db_echo: bool = False
+    cors_origins: list[str] = ["http://localhost:3000"]
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        env_nested_delimiter="__",
+    )
+
+    db: DatabaseSettings
+    server: ServerSettings
 
 
 @lru_cache(maxsize=1)
