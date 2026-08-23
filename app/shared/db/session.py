@@ -11,7 +11,9 @@ from sqlalchemy.ext.asyncio import (
 from app.shared.state import AppStateDep
 
 
-def get_async_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+def create_async_session_factory(
+    engine: AsyncEngine,
+) -> async_sessionmaker[AsyncSession]:
     """Create async session factory bound to engine."""
     return async_sessionmaker(
         engine,
