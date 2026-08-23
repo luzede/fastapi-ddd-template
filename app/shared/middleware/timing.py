@@ -16,7 +16,12 @@ class TimingMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         duration = time.perf_counter() - start
 
-        response.headers["X-Response-Time"] = f"{duration:.4f}s"
         request.state.duration = duration
+
+        # W3C Server-Timing: dur is in milliseconds
+        response.headers["Server-Timing"] = f"total;dur={duration * 1000:.2f}"
+
+        # I like 'X-Response-Time' too so let's add it for convenience
+        response.headers["X-Response-Time"] = f"{duration * 1000:.3f}"
 
         return response

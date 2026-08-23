@@ -19,15 +19,16 @@ from app.shared.exceptions.exceptions import (
 from app.shared.exceptions.types import (
     FieldErrorDict,
 )
+from app.shared.state import RequestState
 
 
-async def problem_exception_handler(
-    request: Request,
+async def problem_detail_exception_handler(
+    request: Request[RequestState],
     exc: ProblemDetailException,
 ) -> JSONResponse:
     """Handle ProblemException subclasses."""
 
-    trace_id = getattr(request.state, "request_id", None)
+    trace_id = request.state.trace_id
     if exc.instance is None:
         exc.instance = request.url.path
     if trace_id:
@@ -37,7 +38,7 @@ async def problem_exception_handler(
 
 
 async def request_validation_exception_handler(
-    request: Request,
+    request: Request[RequestState],
     exc: RequestValidationError,
 ) -> JSONResponse:
     """Handle Pydantic validation errors."""
@@ -65,14 +66,14 @@ async def request_validation_exception_handler(
 
     validation_error = ValidationError(errors=errors)
 
-    return await problem_exception_handler(
+    return await problem_detail_exception_handler(
         request,
         validation_error,
     )
 
 
 async def http_exception_handler(
-    request: Request,
+    request: Request[RequestState],
     exc: HTTPException,
 ) -> JSONResponse:
     """Handle Starlette/FastAPI HTTPException errors."""
@@ -82,7 +83,7 @@ async def http_exception_handler(
         authentication_error = AuthenticationError(
             detail=exc.detail,
         )
-        response = await problem_exception_handler(
+        response = await problem_detail_exception_handler(
             request,
             authentication_error,
         )
@@ -100,7 +101,7 @@ async def http_exception_handler(
             detail=None if exc.status_code >= 500 else exc.detail,
         )
 
-        response = await problem_exception_handler(
+        response = await problem_detail_exception_handler(
             request,
             problem_detail_exception,
         )
@@ -113,7 +114,7 @@ async def http_exception_handler(
 
 
 async def generic_exception_handler(
-    request: Request,
+    request: Request[RequestState],
     _: Exception,
 ) -> JSONResponse:
     """Handle unexpected exceptions."""
@@ -125,7 +126,7 @@ async def generic_exception_handler(
         detail="An unexpected error occurred. Please try again later.",
     )
 
-    return await problem_exception_handler(
+    return await problem_detail_exception_handler(
         request,
         problem_detail_exception,
     )
@@ -139,5 +140,5 @@ def register_exception_handlers(app: FastAPI) -> None:
         RequestValidationError,
         request_validation_exception_handler,  # type: ignore
     )
-    app.add_exception_handler(ProblemDetailException, problem_exception_handler)  # type: ignore
+    app.add_exception_handler(ProblemDetailException, problem_detail_exception_handler)  # type: ignore
     app.add_exception_handler(Exception, generic_exception_handler)
