@@ -3,9 +3,8 @@
 import logging
 
 from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
-
-from app.shared.state import RequestState
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import Response
 
 logger = logging.getLogger(__name__)
 
@@ -13,13 +12,17 @@ logger = logging.getLogger(__name__)
 class LoggingMiddleware(BaseHTTPMiddleware):
     """Log all requests with structured data."""
 
-    async def dispatch(self, request: Request[RequestState], call_next):
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         method = request.method
         path = request.url.path
 
         try:
             response = await call_next(request)
-            duration = request.state.duration
+
+            # 'duration' is set by TimingMiddleware; if not present, it will be None
+            duration = getattr(request.state, "duration", None)
 
             logger.info(
                 "request_completed",

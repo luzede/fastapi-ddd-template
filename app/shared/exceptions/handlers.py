@@ -141,4 +141,4 @@ def register_exception_handlers(app: FastAPI) -> None:
         request_validation_exception_handler,  # type: ignore
     )
     app.add_exception_handler(ProblemDetailException, problem_detail_exception_handler)  # type: ignore
-    app.add_exception_handler(Exception, generic_exception_handler)
+    app.add_exception_handler(Exception, generic_exception_handler)  # type: ignore

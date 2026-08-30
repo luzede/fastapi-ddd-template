@@ -3,19 +3,22 @@
 import time
 
 from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
-
-from app.shared.state import RequestState
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import Response
 
 
 class TimingMiddleware(BaseHTTPMiddleware):
     """Track request processing time."""
 
-    async def dispatch(self, request: Request[RequestState], call_next):
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         start = time.perf_counter()
         response = await call_next(request)
         duration = time.perf_counter() - start
 
+        # Store duration in request.state for access
+        # in LoggingMiddleware
         request.state.duration = duration
 
         # W3C Server-Timing: dur is in milliseconds
