@@ -11,7 +11,12 @@ class Base(DeclarativeBase):
         DateTime(timezone=True), server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), server_onupdate=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
+        # `onupdate` makes the ORM emit `updated_at = now()` on every UPDATE; `server_onupdate`
+        # alone only tells SQLAlchemy a DB-side trigger exists (none is defined here).
+        onupdate=func.now(),
+        server_onupdate=func.now(),
     )
 
     metadata = MetaData(

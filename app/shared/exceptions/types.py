@@ -34,6 +34,7 @@ class ProblemDetailExceptionExtensionsDict(TypedDict, total=False):
     # Common extensions
     trace_id: str  # Trace ID for debugging
     timestamp: datetime
+    headers: dict[str, str]
 
     # Resource-specific extensions
     resource_type: str
@@ -59,6 +60,7 @@ class ProblemExceptionExtensionsPayload(TypedDict, total=False):
 
     trace_id: str
     timestamp: str
+    code: str
 
     resource_type: str
     resource_id: str

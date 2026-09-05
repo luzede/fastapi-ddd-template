@@ -7,6 +7,8 @@ from starlette.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.core.healthcheck import router as healthcheck_router
 from app.core.lifespan import lifespan
+from app.modules.auth.routers import router as auth_router
+from app.modules.users.router import router as users_router
 from app.shared.exceptions.handlers import register_exception_handlers
 from app.shared.middleware import (
     LoggingMiddleware,
@@ -39,10 +41,19 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=["X-Request-ID", "X-Response-Time", "Server-Timing"],
+        expose_headers=[
+            "X-Request-ID",
+            "X-Response-Time",
+            "Server-Timing",
+            # better-auth bearer/jwt plugin headers for header-based clients
+            "set-auth-token",
+            "set-auth-jwt",
+        ],
     )
 
     app.include_router(healthcheck_router)
+    app.include_router(auth_router, prefix=API_V1_PREFIX)
+    app.include_router(users_router, prefix=API_V1_PREFIX)
 
     return app
 

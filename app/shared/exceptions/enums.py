@@ -22,3 +22,4 @@ class ProblemType(StrEnum):
     RATE_LIMIT_EXCEEDED = f"{PROBLEM_TYPE_BASE}/rate-limit-exceeded"
     INTERNAL_ERROR = f"{PROBLEM_TYPE_BASE}/internal-error"
     SERVICE_UNAVAILABLE = f"{PROBLEM_TYPE_BASE}/service-unavailable"
+    INVALID_REQUEST = f"{PROBLEM_TYPE_BASE}/invalid-request"

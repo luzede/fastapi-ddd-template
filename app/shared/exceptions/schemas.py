@@ -32,6 +32,10 @@ class ProblemDetail(BaseModel):
     # Common extensions
     trace_id: str | None = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    code: str | None = Field(
+        default=None,
+        description="Stable machine-readable error code",
+    )
 
     model_config = ConfigDict(
         extra="allow",
