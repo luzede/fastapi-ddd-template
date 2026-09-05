@@ -6,12 +6,9 @@ from sqlalchemy import URL, pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+# Import every module model so autogenerate sees them
 from app.core.config import get_settings
 from app.shared.db.base import Base
-
-# Import every module model so autogenerate sees them
-import app.modules.auth.models  # noqa: F401
-import app.modules.users.models  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -1,3 +1,5 @@
+"""Liveness and readiness probes."""
+
 import logging
 
 from fastapi import APIRouter
@@ -24,7 +26,6 @@ async def liveness_probe() -> HealthCheckResponse:
 
 @router.get("/ready", response_model=HealthCheckResponse)
 async def healthcheck(session: SessionDep) -> HealthCheckResponse:
-    # Check database connectivity by executing a simple query
     try:
         await session.execute(text("SELECT 1"))
     except SQLAlchemyError:

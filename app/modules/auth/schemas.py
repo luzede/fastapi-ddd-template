@@ -6,14 +6,66 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, field_validator
 
-from app.modules.users.schemas import Name, UserRead, normalize_email
-
+type Name = Annotated[str, Field(min_length=1, max_length=128)]
+type Email = Annotated[EmailStr, Field(max_length=320)]
 type Password = Annotated[str, Field(min_length=1, max_length=1024)]
 type Permissions = dict[str, list[str]]
 
 
+def normalize_email(value: str) -> str:
+    return value.strip().lower()
+
+
 class _Body(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+# --- user schemas ------------------------------------------------------------------------
+
+
+class UserRead(BaseModel):
+    """Public representation of a user (mirrors better-auth `User`)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    email: str
+    email_verified: bool
+    image: str | None
+    role: str | None
+    banned: bool
+    ban_reason: str | None
+    ban_expires: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class UserUpdate(_Body):
+    """Self-service profile update (`/update-user`). Email changes have their own flow."""
+
+    name: Name | None = None
+    image: HttpUrl | None = None
+
+
+class ChangeEmailRequest(_Body):
+    new_email: Email
+
+    @field_validator("new_email", mode="after")
+    @classmethod
+    def _normalize(cls, value: str) -> str:
+        return normalize_email(value)
+
+
+class ChangeEmailResponse(BaseModel):
+    status: bool
+    message: str
+
+
+class DeleteUserRequest(_Body):
+    """Requires the current password when the account has one; otherwise a fresh session suffices."""
+
+    password: str | None = None
 
 
 # --- core --------------------------------------------------------------------------------

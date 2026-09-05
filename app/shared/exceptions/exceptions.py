@@ -132,6 +132,7 @@ class ConflictError(ProblemDetailException):
             title="Resource Conflict",
             detail=detail,
             conflicting_field=conflicting_field,
+            **({"code": code} if code else {}),
         )
 
 

@@ -6,14 +6,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, Response, status
 
+from app.modules.auth.cookies import clear_session_cookie, set_session_cookie
 from app.modules.auth.dependencies import (
-    AdminAuthDep,
     AdminServiceDep,
     AuthSettingsDep,
+)
+from app.modules.auth.guards import (
+    AdminAuthDep,
     ClientInfoDep,
     SessionAuthDep,
-    clear_session_cookie,
-    set_session_cookie,
 )
 from app.modules.auth.schemas import (
     AdminCreateUserRequest,
@@ -27,9 +28,10 @@ from app.modules.auth.schemas import (
     RevokeSessionRequest,
     SessionRead,
     SetRoleRequest,
+    UserRead,
 )
-from app.modules.users.schemas import StatusResponse, UserRead
 from app.shared.exceptions.schemas import ProblemDetail
+from app.shared.schemas import StatusResponse
 
 router = APIRouter(prefix="/admin", tags=["auth:admin"])
 

@@ -10,10 +10,13 @@ from fastapi import APIRouter, status
 
 from app.modules.auth.access_control import AccessControl
 from app.modules.auth.constants import AuthErrorCode
+from app.modules.auth.context import AuthContext
 from app.modules.auth.dependencies import (
     AccessControlDep,
-    AdminAuthDep,
     ApiKeyServiceDep,
+)
+from app.modules.auth.guards import (
+    AdminAuthDep,
     SessionAuthDep,
 )
 from app.modules.auth.models import ApiKey
@@ -27,10 +30,9 @@ from app.modules.auth.schemas import (
     ApiKeyVerifyResponse,
 )
 from app.modules.auth.services.api_key import ApiKeyService
-from app.modules.auth.services.session import AuthContext
-from app.modules.users.schemas import StatusResponse
 from app.shared.exceptions import AuthorizationError
 from app.shared.exceptions.schemas import ProblemDetail
+from app.shared.schemas import StatusResponse
 
 router = APIRouter(prefix="/api-key", tags=["auth:api-key"])
 

@@ -10,17 +10,18 @@ from sqlalchemy.exc import IntegrityError
 from app.core.config import AuthSettings
 from app.modules.auth.access_control import AccessControl, Permissions
 from app.modules.auth.constants import AuthErrorCode
-from app.modules.auth.models import Session
-from app.modules.auth.repository import CREDENTIAL_PROVIDER, AccountRepository
-from app.modules.auth.security import hash_password
-from app.modules.auth.services.session import AuthContext, ClientInfo, SessionService
-from app.modules.users.models import User
-from app.modules.users.repository import (
+from app.modules.auth.context import AuthContext, ClientInfo
+from app.modules.auth.models import Session, User
+from app.modules.auth.repository import (
+    CREDENTIAL_PROVIDER,
+    AccountRepository,
     SearchField,
     SearchOperator,
     UserRepository,
     UserSortField,
 )
+from app.modules.auth.security import hash_password
+from app.modules.auth.services.session import SessionService
 from app.shared.exceptions import (
     AuthorizationError,
     BadRequestError,

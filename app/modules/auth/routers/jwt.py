@@ -2,7 +2,8 @@
 
 from fastapi import APIRouter
 
-from app.modules.auth.dependencies import JwtServiceDep, SessionAuthDep
+from app.modules.auth.dependencies import JwtServiceDep
+from app.modules.auth.guards import SessionAuthDep
 from app.modules.auth.schemas import JwksResponse, TokenResponse
 from app.shared.exceptions.schemas import ProblemDetail
 

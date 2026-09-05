@@ -4,17 +4,19 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, Response, status
 
+from app.modules.auth.cookies import clear_session_cookie, set_session_cookie
 from app.modules.auth.dependencies import (
-    AuthDep,
-    AuthServiceDep,
     AuthSettingsDep,
+    CredentialServiceDep,
+    EmailAddressServiceDep,
+    JwtServiceDep,
+    SessionServiceDep,
+)
+from app.modules.auth.guards import (
+    AuthDep,
     ClientInfoDep,
     FreshAuthDep,
-    JwtServiceDep,
     SessionAuthDep,
-    SessionServiceDep,
-    clear_session_cookie,
-    set_session_cookie,
 )
 from app.modules.auth.schemas import (
     AuthResponse,
@@ -27,10 +29,11 @@ from app.modules.auth.schemas import (
     SetPasswordRequest,
     SignInEmailRequest,
     SignUpEmailRequest,
+    UserRead,
     VerifyPasswordRequest,
 )
-from app.modules.users.schemas import StatusResponse, UserRead
 from app.shared.exceptions.schemas import ProblemDetail
+from app.shared.schemas import StatusResponse
 
 router = APIRouter(tags=["auth"])
 
@@ -47,11 +50,11 @@ _PROBLEM = {"model": ProblemDetail}
 async def sign_up_email(
     body: SignUpEmailRequest,
     response: Response,
-    auth: AuthServiceDep,
+    credentials: CredentialServiceDep,
     settings: AuthSettingsDep,
     client: ClientInfoDep,
 ) -> AuthResponse:
-    result = await auth.sign_up_email(
+    result = await credentials.sign_up_email(
         email=body.email,
         password=body.password,
         name=body.name,
@@ -75,11 +78,11 @@ async def sign_up_email(
 async def sign_in_email(
     body: SignInEmailRequest,
     response: Response,
-    auth: AuthServiceDep,
+    credentials: CredentialServiceDep,
     settings: AuthSettingsDep,
     client: ClientInfoDep,
 ) -> AuthResponse:
-    result = await auth.sign_in_email(
+    result = await credentials.sign_in_email(
         email=body.email, password=body.password, client=client
     )
     set_session_cookie(response, settings, result.session)
@@ -95,11 +98,11 @@ async def sign_in_email(
 )
 async def sign_out(
     response: Response,
-    auth: AuthServiceDep,
+    credentials: CredentialServiceDep,
     settings: AuthSettingsDep,
     ctx: SessionAuthDep,
 ) -> StatusResponse:
-    await auth.sign_out(ctx.session.token)
+    await credentials.sign_out(ctx.session.token)
     clear_session_cookie(response, settings)
     return StatusResponse()
 
@@ -146,7 +149,9 @@ async def list_sessions(
     summary="Revoke one of the current user's sessions by token",
 )
 async def revoke_session(
-    body: RevokeSessionRequest, ctx: SessionAuthDep, sessions: SessionServiceDep
+    body: RevokeSessionRequest,
+    ctx: SessionAuthDep,
+    sessions: SessionServiceDep,
 ) -> StatusResponse:
     # Only the owner may revoke: scope the lookup to their sessions
     owned = {s.token for s in await sessions.list_active(ctx.user.id)}
@@ -196,9 +201,9 @@ async def revoke_other_sessions(
     summary="(Re)send the email verification link",
 )
 async def send_verification_email(
-    body: EmailRequest, auth: AuthServiceDep
+    body: EmailRequest, email_address: EmailAddressServiceDep
 ) -> StatusResponse:
-    await auth.resend_verification_email(body.email)
+    await email_address.resend_verification_email(body.email)
     return StatusResponse()
 
 
@@ -209,9 +214,10 @@ async def send_verification_email(
     summary="Verify an email address (link target)",
 )
 async def verify_email(
-    token: Annotated[str, Query(min_length=16, max_length=256)], auth: AuthServiceDep
+    token: Annotated[str, Query(min_length=16, max_length=256)],
+    email_address: EmailAddressServiceDep,
 ) -> UserRead:
-    return UserRead.model_validate(await auth.verify_email(token))
+    return UserRead.model_validate(await email_address.verify_email(token))
 
 
 # --- passwords ---------------------------------------------------------------------------
@@ -223,9 +229,9 @@ async def verify_email(
     summary="Send a password reset link",
 )
 async def request_password_reset(
-    body: EmailRequest, auth: AuthServiceDep
+    body: EmailRequest, credentials: CredentialServiceDep
 ) -> StatusResponse:
-    await auth.request_password_reset(body.email)
+    await credentials.request_password_reset(body.email)
     return StatusResponse()
 
 
@@ -236,9 +242,9 @@ async def request_password_reset(
     summary="Set a new password using a reset token",
 )
 async def reset_password(
-    body: ResetPasswordRequest, auth: AuthServiceDep
+    body: ResetPasswordRequest, credentials: CredentialServiceDep
 ) -> StatusResponse:
-    await auth.reset_password(token=body.token, new_password=body.new_password)
+    await credentials.reset_password(token=body.token, new_password=body.new_password)
     return StatusResponse()
 
 
@@ -249,9 +255,11 @@ async def reset_password(
     summary="Change password (requires current password)",
 )
 async def change_password(
-    body: ChangePasswordRequest, ctx: SessionAuthDep, auth: AuthServiceDep
+    body: ChangePasswordRequest,
+    ctx: SessionAuthDep,
+    credentials: CredentialServiceDep,
 ) -> StatusResponse:
-    await auth.change_password(
+    await credentials.change_password(
         user=ctx.user,
         current_token=ctx.session.token,
         current_password=body.current_password,
@@ -268,9 +276,9 @@ async def change_password(
     summary="Set a password on an account that has none (fresh session required)",
 )
 async def set_password(
-    body: SetPasswordRequest, ctx: FreshAuthDep, auth: AuthServiceDep
+    body: SetPasswordRequest, ctx: FreshAuthDep, credentials: CredentialServiceDep
 ) -> StatusResponse:
-    await auth.set_password(user=ctx.user, new_password=body.new_password)
+    await credentials.set_password(user=ctx.user, new_password=body.new_password)
     return StatusResponse()
 
 
@@ -281,7 +289,9 @@ async def set_password(
     summary="Re-verify the current user's password",
 )
 async def verify_password(
-    body: VerifyPasswordRequest, ctx: SessionAuthDep, auth: AuthServiceDep
+    body: VerifyPasswordRequest,
+    ctx: SessionAuthDep,
+    credentials: CredentialServiceDep,
 ) -> StatusResponse:
-    await auth.verify_password(user=ctx.user, password=body.password)
+    await credentials.verify_password(user=ctx.user, password=body.password)
     return StatusResponse()

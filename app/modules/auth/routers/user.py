@@ -1,28 +1,34 @@
-"""Self-service user endpoints (better-auth `update-user`, `change-email`, `delete-user`, `list-accounts`)."""
+"""Self-service user endpoints (better-auth `update-user`, `change-email`, `delete-user`, `list-accounts`).
+
+Part of the auth aggregate's HTTP surface; served at `/users` to match client expectations.
+"""
 
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Response
 
+from app.modules.auth.cookies import clear_session_cookie
 from app.modules.auth.dependencies import (
-    AuthDep,
-    AuthServiceDep,
+    AccountServiceDep,
     AuthSettingsDep,
-    SessionAuthDep,
-    clear_session_cookie,
+    EmailAddressServiceDep,
     get_account_repository,
 )
+from app.modules.auth.guards import (
+    AuthDep,
+    SessionAuthDep,
+)
 from app.modules.auth.repository import AccountRepository
-from app.modules.auth.schemas import AccountRead
-from app.modules.users.schemas import (
+from app.modules.auth.schemas import (
+    AccountRead,
     ChangeEmailRequest,
     ChangeEmailResponse,
     DeleteUserRequest,
-    StatusResponse,
     UserRead,
     UserUpdate,
 )
 from app.shared.exceptions.schemas import ProblemDetail
+from app.shared.schemas import StatusResponse
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -46,9 +52,9 @@ async def get_me(ctx: AuthDep) -> UserRead:
     summary="Update the current user's profile",
 )
 async def update_me(
-    body: UserUpdate, ctx: SessionAuthDep, auth: AuthServiceDep
+    body: UserUpdate, ctx: SessionAuthDep, account: AccountServiceDep
 ) -> UserRead:
-    user = await auth.update_profile(
+    user = await account.update_profile(
         ctx.user,
         name=body.name,
         image=str(body.image) if body.image else None,
@@ -68,9 +74,11 @@ async def update_me(
     ),
 )
 async def change_email(
-    body: ChangeEmailRequest, ctx: SessionAuthDep, auth: AuthServiceDep
+    body: ChangeEmailRequest,
+    ctx: SessionAuthDep,
+    email_address: EmailAddressServiceDep,
 ) -> ChangeEmailResponse:
-    sent = await auth.request_email_change(ctx.user, body.new_email)
+    sent = await email_address.request_email_change(ctx.user, body.new_email)
     return ChangeEmailResponse(
         status=True,
         message=(
@@ -88,9 +96,10 @@ async def change_email(
     summary="Confirm an email change (link target)",
 )
 async def confirm_email_change(
-    token: Annotated[str, Query(min_length=16, max_length=256)], auth: AuthServiceDep
+    token: Annotated[str, Query(min_length=16, max_length=256)],
+    email_address: EmailAddressServiceDep,
 ) -> UserRead:
-    return UserRead.model_validate(await auth.confirm_email_change(token))
+    return UserRead.model_validate(await email_address.confirm_email_change(token))
 
 
 @router.get(
@@ -118,12 +127,14 @@ async def list_accounts(
 async def delete_me(
     response: Response,
     ctx: SessionAuthDep,
-    auth: AuthServiceDep,
+    account: AccountServiceDep,
     settings: AuthSettingsDep,
     body: DeleteUserRequest | None = None,
 ) -> StatusResponse:
-    await auth.delete_account(
-        user=ctx.user, session=ctx.session, password=body.password if body else None
+    await account.delete_account(
+        user=ctx.user,
+        session=ctx.session,
+        password=body.password if body else None,
     )
     clear_session_cookie(response, settings)
     return StatusResponse()

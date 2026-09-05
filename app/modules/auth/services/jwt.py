@@ -15,7 +15,7 @@ import jwt
 
 from app.core.config import AuthSettings
 from app.modules.auth.constants import AuthErrorCode
-from app.modules.auth.models import Jwks
+from app.modules.auth.models import Jwks, User
 from app.modules.auth.repository import JwksRepository
 from app.modules.auth.security import (
     decrypt,
@@ -24,7 +24,6 @@ from app.modules.auth.security import (
     load_private_key,
     load_public_key,
 )
-from app.modules.users.models import User
 from app.shared.exceptions import AuthenticationError, InternalError
 
 

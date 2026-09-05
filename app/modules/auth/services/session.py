@@ -1,34 +1,13 @@
 """Opaque-token session lifecycle (better-auth core session semantics)."""
 
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from app.core.config import SessionSettings
+from app.modules.auth.context import ClientInfo
 from app.modules.auth.models import Session
 from app.modules.auth.repository import SessionRepository
 from app.modules.auth.security import generate_session_token
-from app.modules.users.models import User
-
-
-@dataclass(slots=True, frozen=True)
-class ClientInfo:
-    ip_address: str | None
-    user_agent: str | None
-
-
-@dataclass(slots=True)
-class AuthContext:
-    """The resolved principal for a request."""
-
-    user: User
-    session: Session
-    via_api_key: bool = False
-    """True when the principal was established from an API key (synthetic session, never persisted)."""
-
-    @property
-    def is_impersonation(self) -> bool:
-        return self.session.impersonated_by is not None
 
 
 class SessionService:
