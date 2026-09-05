@@ -1,5 +1,6 @@
 """Exception hierarchy rendering as RFC 9457 Problem Detail."""
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Literal, Unpack, cast
 
@@ -37,8 +38,6 @@ class ProblemDetailException(Exception):
 
         if extensions.get("timestamp") is None:
             extensions["timestamp"] = datetime.now(UTC)
-        if extensions.get("headers") is None:
-            extensions["headers"] = {}
 
         self.extensions = extensions
 
@@ -65,15 +64,10 @@ class ProblemDetailException(Exception):
 
         return problem
 
-    def to_json_response(self) -> JSONResponse:
-        headers: dict[str, str] = dict(self.extensions.get("headers") or {})
-
-        # RFC 9110 §10.2.3: Retry-After applies to 429 and 503 responses
-        # https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3
-        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
-        if self.extensions.get("retry_after") is not None:
-            headers["Retry-After"] = str(self.extensions["retry_after"])
-
+    def to_json_response(
+        self, headers: Mapping[str, str] | None = None
+    ) -> JSONResponse:
+        """Convert to FastAPI JSONResponse with RFC 9457 Problem Detail."""
         return JSONResponse(
             status_code=self.status,
             content=self.to_problem_detail(),
@@ -124,7 +118,6 @@ class ConflictError(ProblemDetailException):
         self,
         detail: str,
         conflicting_field: str | None = None,
-        code: str | None = None,
     ):
         super().__init__(
             status=409,
@@ -132,20 +125,18 @@ class ConflictError(ProblemDetailException):
             title="Resource Conflict",
             detail=detail,
             conflicting_field=conflicting_field,
-            **({"code": code} if code else {}),
         )
 
 
 class BadRequestError(ProblemDetailException):
     """Semantically invalid request (well-formed but cannot be processed as-is)."""
 
-    def __init__(self, detail: str, code: str | None = None):
+    def __init__(self, detail: str):
         super().__init__(
             status=400,
             type=ProblemType.INVALID_REQUEST,
             title="Bad Request",
             detail=detail,
-            **({"code": code} if code else {}),
         )
 
 
@@ -157,17 +148,25 @@ class RateLimitError(ProblemDetailException):
         retry_after: int,
         limit: int,
         window: str = "1 minute",
-        code: str | None = None,
     ):
+        self.retry_after = retry_after
+
         super().__init__(
             status=429,
             type=ProblemType.RATE_LIMIT_EXCEEDED,
             title="Rate Limit Exceeded",
             detail=f"You have exceeded {limit} requests per {window}",
-            retry_after=retry_after,
             limit=limit,
             window=window,
         )
+
+    def to_json_response(
+        self, headers: Mapping[str, str] | None = None
+    ) -> JSONResponse:
+        headers = dict(headers or {})
+        if self.retry_after is not None:
+            headers["Retry-After"] = str(self.retry_after)
+        return super().to_json_response(headers=headers)
 
 
 class AuthenticationError(ProblemDetailException):
@@ -179,17 +178,23 @@ class AuthenticationError(ProblemDetailException):
     def __init__(
         self,
         detail: str = "Authentication is required",
-        code: str | None = None,
         www_authenticate: str = "Bearer",
     ):
+        self.www_authenticate = www_authenticate
+
         super().__init__(
             status=401,
             type=ProblemType.AUTHENTICATION_REQUIRED,
             title="Authentication Required",
             detail=detail,
-            headers={"WWW-Authenticate": www_authenticate},
-            **({"code": code} if code else {}),
         )
+
+    def to_json_response(
+        self, headers: Mapping[str, str] | None = None
+    ) -> JSONResponse:
+        headers = dict(headers or {})
+        headers["WWW-Authenticate"] = self.www_authenticate
+        return super().to_json_response(headers=headers)
 
 
 class AuthorizationError(ProblemDetailException):
@@ -199,7 +204,6 @@ class AuthorizationError(ProblemDetailException):
         self,
         detail: str = "You don't have permission to access this resource",
         required_permission: str | None = None,
-        code: str | None = None,
     ):
         super().__init__(
             status=403,
@@ -207,7 +211,6 @@ class AuthorizationError(ProblemDetailException):
             title="Insufficient Permissions",
             detail=detail,
             required_permission=required_permission,
-            **({"code": code} if code else {}),
         )
 
 
@@ -231,10 +234,22 @@ class ServiceUnavailableError(ProblemDetailException):
         detail: str = "Service is temporarily unavailable",
         retry_after: int | None = None,
     ):
+        # RFC 9110 §10.2.3: Retry-After applies to 429 and 503 responses
+        # https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
+        self.retry_after = retry_after
+
         super().__init__(
             status=503,
             type=ProblemType.SERVICE_UNAVAILABLE,
             title="Service Unavailable",
             detail=detail,
-            retry_after=retry_after,
         )
+
+    def to_json_response(
+        self, headers: Mapping[str, str] | None = None
+    ) -> JSONResponse:
+        headers = dict(headers or {})
+        if self.retry_after is not None:
+            headers["Retry-After"] = str(self.retry_after)
+        return super().to_json_response(headers=headers)

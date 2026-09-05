@@ -32,9 +32,8 @@ class FieldErrorDict(TypedDict):
 
 class ProblemDetailExceptionExtensionsDict(TypedDict, total=False):
     # Common extensions
-    trace_id: str  # Trace ID for debugging
+    trace_id: str
     timestamp: datetime
-    headers: dict[str, str]
 
     # Resource-specific extensions
     resource_type: str
@@ -47,7 +46,6 @@ class ProblemDetailExceptionExtensionsDict(TypedDict, total=False):
     conflicting_field: str | None
 
     # Rate limit-specific extensions
-    retry_after: int | None
     limit: int
     window: str
 
@@ -60,7 +58,6 @@ class ProblemExceptionExtensionsPayload(TypedDict, total=False):
 
     trace_id: str
     timestamp: str
-    code: str
 
     resource_type: str
     resource_id: str
@@ -69,7 +66,6 @@ class ProblemExceptionExtensionsPayload(TypedDict, total=False):
 
     conflicting_field: str
 
-    retry_after: int
     limit: int
     window: str
 
