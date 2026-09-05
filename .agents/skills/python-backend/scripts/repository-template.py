@@ -3,8 +3,6 @@ SQLAlchemy 2.0 Async Repository Template
 
 Generic repository pattern for async database operations.
 """
-
-from typing import Generic, TypeVar
 from uuid import UUID
 
 from sqlalchemy import select
@@ -19,10 +17,8 @@ class Base(DeclarativeBase):
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True)
 
 
-T = TypeVar("T", bound=Base)
 
-
-class AsyncRepository(Generic[T]):  # noqa: UP046 - Support Python 3.11+
+class AsyncRepository[T: Base]:
     """
     Generic async repository for CRUD operations.
 
