@@ -1,6 +1,7 @@
 """Request timing middleware."""
 
 import time
+from typing import override
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -10,6 +11,7 @@ from starlette.responses import Response
 class TimingMiddleware(BaseHTTPMiddleware):
     """Track request processing time."""
 
+    @override
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:

@@ -11,8 +11,8 @@ from app.shared.exceptions.enums import ProblemType
 from app.shared.exceptions.types import (
     FieldErrorDict,
     ProblemDetailExceptionExtensionsDict,
+    ProblemDetailExceptionExtensionsPayload,
     ProblemDetailPayloadWithCommonExtensions,
-    ProblemExceptionExtensionsPayload,
 )
 
 
@@ -48,7 +48,7 @@ class ProblemDetailException(Exception):
         """Convert to Problem Detail dict."""
 
         none_ommitted_extensions = cast(
-            ProblemExceptionExtensionsPayload,
+            ProblemDetailExceptionExtensionsPayload,
             jsonable_encoder(self.extensions, exclude_none=True),
         )
 

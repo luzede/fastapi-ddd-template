@@ -2,6 +2,7 @@
 
 import re
 import secrets
+from typing import override
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -15,6 +16,7 @@ ZERO_16 = "0" * 16
 class TraceContextMiddleware(BaseHTTPMiddleware):
     """Resolve request.state.trace_id from traceparent or X-Request-ID, minting one if absent."""
 
+    @override
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:

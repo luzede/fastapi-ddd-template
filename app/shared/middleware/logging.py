@@ -1,6 +1,7 @@
 """Request logging middleware."""
 
 import logging
+from typing import override
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 class LoggingMiddleware(BaseHTTPMiddleware):
     """Log all requests with structured data."""
 
+    @override
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:

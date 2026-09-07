@@ -53,8 +53,8 @@ class ProblemDetailExceptionExtensionsDict(TypedDict, total=False):
     required_permission: str | None
 
 
-class ProblemExceptionExtensionsPayload(TypedDict, total=False):
-    """Problem exception extensions payload (JSON-serialized, None omitted)."""
+class ProblemDetailExceptionExtensionsPayload(TypedDict, total=False, closed=True):
+    """Problem detail exception extensions payload (JSON-serialized, None omitted)."""
 
     trace_id: str
     timestamp: str
