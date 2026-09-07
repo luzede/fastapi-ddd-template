@@ -41,6 +41,9 @@ class ProblemDetailException(Exception):
 
         self.extensions = extensions
 
+        # Headers for HTTP responses (e.g., Retry-After, WWW-Authenticate)
+        self.headers: dict[str, str] = {}
+
     def to_problem_detail(self) -> ProblemDetailPayloadWithCommonExtensions:
         """Convert to Problem Detail dict."""
 
@@ -68,11 +71,13 @@ class ProblemDetailException(Exception):
         self, headers: Mapping[str, str] | None = None
     ) -> JSONResponse:
         """Convert to FastAPI JSONResponse with RFC 9457 Problem Detail."""
+        response_headers = {**self.headers, **(headers or {})}
+
         return JSONResponse(
             status_code=self.status,
             content=self.to_problem_detail(),
             media_type="application/problem+json",
-            headers=headers or None,
+            headers=response_headers or None,
         )
 
 
@@ -149,8 +154,6 @@ class RateLimitError(ProblemDetailException):
         limit: int,
         window: str = "1 minute",
     ):
-        self.retry_after = retry_after
-
         super().__init__(
             status=429,
             type=ProblemType.RATE_LIMIT_EXCEEDED,
@@ -160,13 +163,10 @@ class RateLimitError(ProblemDetailException):
             window=window,
         )
 
-    def to_json_response(
-        self, headers: Mapping[str, str] | None = None
-    ) -> JSONResponse:
-        headers = dict(headers or {})
-        if self.retry_after is not None:
-            headers["Retry-After"] = str(self.retry_after)
-        return super().to_json_response(headers=headers)
+        # RFC 9110 §10.2.3: Retry-After applies to 429 and 503 responses
+        # https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
+        self.headers["Retry-After"] = str(retry_after)
 
 
 class AuthenticationError(ProblemDetailException):
@@ -180,8 +180,6 @@ class AuthenticationError(ProblemDetailException):
         detail: str = "Authentication is required",
         www_authenticate: str = "Bearer",
     ):
-        self.www_authenticate = www_authenticate
-
         super().__init__(
             status=401,
             type=ProblemType.AUTHENTICATION_REQUIRED,
@@ -189,12 +187,7 @@ class AuthenticationError(ProblemDetailException):
             detail=detail,
         )
 
-    def to_json_response(
-        self, headers: Mapping[str, str] | None = None
-    ) -> JSONResponse:
-        headers = dict(headers or {})
-        headers["WWW-Authenticate"] = self.www_authenticate
-        return super().to_json_response(headers=headers)
+        self.headers["WWW-Authenticate"] = www_authenticate
 
 
 class AuthorizationError(ProblemDetailException):
@@ -234,11 +227,6 @@ class ServiceUnavailableError(ProblemDetailException):
         detail: str = "Service is temporarily unavailable",
         retry_after: int | None = None,
     ):
-        # RFC 9110 §10.2.3: Retry-After applies to 429 and 503 responses
-        # https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3
-        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
-        self.retry_after = retry_after
-
         super().__init__(
             status=503,
             type=ProblemType.SERVICE_UNAVAILABLE,
@@ -246,10 +234,8 @@ class ServiceUnavailableError(ProblemDetailException):
             detail=detail,
         )
 
-    def to_json_response(
-        self, headers: Mapping[str, str] | None = None
-    ) -> JSONResponse:
-        headers = dict(headers or {})
-        if self.retry_after is not None:
-            headers["Retry-After"] = str(self.retry_after)
-        return super().to_json_response(headers=headers)
+        # RFC 9110 §10.2.3: Retry-After applies to 429 and 503 responses
+        # https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
+        if retry_after is not None:
+            self.headers["Retry-After"] = str(retry_after)
