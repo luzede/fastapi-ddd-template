@@ -1,0 +1,23 @@
+#:schema https://raw.githubusercontent.com/facebook/pyrefly/main/schemas/pyrefly.json
+#
+# Pyrefly configuration file
+# See https://pyrefly.org/en/docs/configuration for more information.
+
+# Check all Python and Jupyter Notebook files under the containing directory
+project-includes = ["**/*.py*", "**/*.ipynb"]
+# Exclude some uninteresting files
+project-excludes = [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/*venv/**",
+    "**/.[!/.]*/**",
+]
+
+# Perform an upward search for `.gitignore`, `.ignore`, `.git/info/exclude`
+# and add those to `project-excludes` automatically
+use-ignore-files = true
+
+preset = "strict"
+
+[errors]
+not-required-key-access = "error"
