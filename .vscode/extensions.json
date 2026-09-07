@@ -2,6 +2,7 @@
     "recommendations": [
         "meta.pyrefly",
         "charliermarsh.ruff",
-        "ms-python.python"
+        "ms-python.python",
+        "tamasfe.even-better-toml"
     ]
 }

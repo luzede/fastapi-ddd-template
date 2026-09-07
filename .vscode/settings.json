@@ -10,7 +10,7 @@
     },
     "ruff.importStrategy": "useBundled",
     "python.pyrefly.disableLanguageServices": true,
-    "python.pyrefly.typeCheckingMode": "default",
+    "python.pyrefly.typeCheckingMode": "strict",
     "python.pyrefly.diagnosticMode": "workspace",
     "python.languageServer": "Pylance",
     "python.analysis.diagnosticMode": "openFilesOnly",
