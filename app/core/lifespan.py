@@ -4,12 +4,12 @@ from datetime import UTC, datetime
 
 from fastapi import FastAPI
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import get_settings
 from app.modules.auth.mailer import LoggingMailer
-from app.modules.auth.repository import JwksRepository
+from app.modules.auth.repositories import JwksRepository
 from app.modules.auth.services.jwt import JwtService
-from app.shared.db.engine import create_engine
 from app.shared.db.session import create_async_session_factory
 from app.shared.state import AppState
 
@@ -22,7 +22,26 @@ async def lifespan(app: FastAPI):
     app.state = AppState()
 
     # Initialize database engine and async session factory
-    app.state.db_engine = create_engine()
+    app.state.db_engine = create_async_engine(
+        settings.db.url,
+        echo=settings.db.echo,
+        pool_size=settings.db.pool_size,
+        max_overflow=settings.db.max_overflow,
+        pool_pre_ping=settings.db.pool_pre_ping,
+        pool_recycle=settings.db.pool_recycle,
+        pool_timeout=settings.db.pool_timeout,
+        # asyncpg driver arguments
+        connect_args={
+            # Client cancels queries >65s, raises TimeoutError
+            # slightly above 'statement_timeout' to avoid race condition
+            "command_timeout": 65,
+            "server_settings": {
+                # Postgres server-side caps each statement at 60s (ms),
+                # raises asyncpg.QueryCanceledError
+                "statement_timeout": "60000"
+            },
+        },
+    )
     app.state.async_session_factory = create_async_session_factory(app.state.db_engine)
 
     # Verify database connection

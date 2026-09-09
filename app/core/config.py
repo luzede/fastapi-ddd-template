@@ -1,8 +1,9 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import BaseModel, Field, Secret, field_validator
+from pydantic import BaseModel, Field, Secret, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy import URL
 
 
 class DatabaseSettings(BaseModel):
@@ -12,6 +13,25 @@ class DatabaseSettings(BaseModel):
     password: Secret[str]
     name: str
     echo: bool = False
+
+    # Connection pool
+    pool_size: int = 20  # steady-state connections
+    max_overflow: int = 10  # burst capacity (total max = pool_size + max_overflow)
+    pool_pre_ping: bool = True  # validate connections before use
+    pool_recycle: int = 1800  # recreate connections after 30 minutes
+    pool_timeout: int = 30  # seconds to wait for a connection from the pool
+
+    @computed_field
+    @property
+    def url(self) -> URL:
+        return URL.create(
+            drivername="postgresql+asyncpg",
+            username=self.username,
+            password=self.password.get_secret_value(),
+            host=self.host,
+            port=self.port,
+            database=self.name,
+        )
 
 
 class ServerSettings(BaseModel):
