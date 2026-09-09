@@ -123,6 +123,7 @@ class ConflictError(ProblemDetailException):
         self,
         detail: str,
         conflicting_field: str | None = None,
+        code: str | None = None,
     ):
         super().__init__(
             status=409,
@@ -130,18 +131,20 @@ class ConflictError(ProblemDetailException):
             title="Resource Conflict",
             detail=detail,
             conflicting_field=conflicting_field,
+            code=code,
         )
 
 
 class BadRequestError(ProblemDetailException):
     """Semantically invalid request (well-formed but cannot be processed as-is)."""
 
-    def __init__(self, detail: str):
+    def __init__(self, detail: str, code: str | None = None):
         super().__init__(
             status=400,
             type=ProblemType.INVALID_REQUEST,
             title="Bad Request",
             detail=detail,
+            code=code,
         )
 
 
@@ -179,12 +182,14 @@ class AuthenticationError(ProblemDetailException):
         self,
         detail: str = "Authentication is required",
         www_authenticate: str = "Bearer",
+        code: str | None = None,
     ):
         super().__init__(
             status=401,
             type=ProblemType.AUTHENTICATION_REQUIRED,
             title="Authentication Required",
             detail=detail,
+            code=code,
         )
 
         self.headers["WWW-Authenticate"] = www_authenticate
@@ -197,6 +202,7 @@ class AuthorizationError(ProblemDetailException):
         self,
         detail: str = "You don't have permission to access this resource",
         required_permission: str | None = None,
+        code: str | None = None,
     ):
         super().__init__(
             status=403,
@@ -204,6 +210,7 @@ class AuthorizationError(ProblemDetailException):
             title="Insufficient Permissions",
             detail=detail,
             required_permission=required_permission,
+            code=code,
         )
 
 

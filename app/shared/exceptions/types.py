@@ -20,9 +20,10 @@ class ProblemDetailPayload(TypedDict, extra_items=Any):
 class ProblemDetailPayloadWithCommonExtensions(ProblemDetailPayload):
     trace_id: NotRequired[str]  # Trace ID for debugging
     timestamp: NotRequired[str]  # Timestamp of the error occurrence
+    code: NotRequired[str]  # Machine-readable error code
 
 
-class FieldErrorDict(TypedDict):
+class FieldErrorDict(TypedDict, closed=True):
     """Individual field validation error."""
 
     field: str
@@ -30,10 +31,11 @@ class FieldErrorDict(TypedDict):
     message: str
 
 
-class ProblemDetailExceptionExtensionsDict(TypedDict, total=False):
+class ProblemDetailExceptionExtensionsDict(TypedDict, total=False, closed=True):
     # Common extensions
     trace_id: str
     timestamp: datetime
+    code: str | None
 
     # Resource-specific extensions
     resource_type: str
@@ -58,6 +60,7 @@ class ProblemDetailExceptionExtensionsPayload(TypedDict, total=False, closed=Tru
 
     trace_id: str
     timestamp: str
+    code: str
 
     resource_type: str
     resource_id: str
