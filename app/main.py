@@ -11,7 +11,7 @@ from app.modules.health.router import router as healthcheck_router
 from app.shared.exceptions.handlers import register_exception_handlers
 from app.shared.middleware import (
     LoggingMiddleware,
-    TimingMiddleware,
+    ServerTimingMiddleware,
     TraceContextMiddleware,
 )
 
@@ -30,7 +30,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
 
     # Added bottom-up: the LAST add_middleware call runs FIRST on the request path
-    app.add_middleware(TimingMiddleware)  # innermost
+    app.add_middleware(ServerTimingMiddleware)  # innermost
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(TraceContextMiddleware)
     # Outermost: preflight OPTIONS short-circuits here, never reaching app middleware
