@@ -1,16 +1,12 @@
 """Trace context middleware: W3C traceparent with X-Request-ID fallback."""
 
-import re
 import secrets
 from typing import override
 
 from fastapi import Request
+from opentelemetry import trace
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
-
-TRACEPARENT_RE = re.compile(r"^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$")
-ZERO_32 = "0" * 32
-ZERO_16 = "0" * 16
 
 
 class TraceContextMiddleware(BaseHTTPMiddleware):
@@ -20,27 +16,17 @@ class TraceContextMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        trace_id: str | None = None
-        trace_flags = "01"
+        # Extract current span context set by OpenTelemetry middleware
+        span_ctx = trace.get_current_span().get_span_context()
 
-        traceparent = request.headers.get("traceparent")
-        if traceparent:
-            match = TRACEPARENT_RE.match(traceparent)
-            if match and match.group(1) != ZERO_32 and match.group(2) != ZERO_16:
-                trace_id = match.group(1)
-                trace_flags = match.group(3)
-
-        if not trace_id:
-            trace_id = request.headers.get("x-request-id") or secrets.token_hex(16)
-
-        # Set trace_id and trace_flags in request.state for
-        # access in route handlers and exception handlers
-        # RequestState is typed in app/shared/state.py
-        request.state.trace_id = trace_id
-        request.state.trace_flags = trace_flags
+        # If the span context is valid, use its trace_id; otherwise, generate a random one.
+        if span_ctx.is_valid:
+            request.state.trace_id = trace.format_trace_id(span_ctx.trace_id)
+        else:
+            request.state.trace_id = secrets.token_hex(16)
 
         response = await call_next(request)
 
-        response.headers["X-Request-ID"] = trace_id
+        response.headers["X-Request-ID"] = request.state.trace_id
 
         return response

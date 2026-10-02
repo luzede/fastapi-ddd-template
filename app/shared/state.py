@@ -20,8 +20,6 @@ class AppState(State):
 class RequestState(State):
     trace_id: str
     """Set by `TraceContextMiddleware`; available in route handlers and exception handlers via request.state.trace_id."""
-    trace_flags: str
-    """Set by `TraceContextMiddleware`; available in route handlers and exception handlers via request.state.trace_flags."""
 
 
 def get_app_state_from_request(request: Request) -> AppState:

@@ -2,6 +2,9 @@ import uvicorn
 from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
+from opentelemetry import trace
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.trace import TracerProvider
 from starlette.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
@@ -25,6 +28,9 @@ def run_migrations() -> None:
 
 def create_app() -> FastAPI:
     settings = get_settings()
+
+    tracer_provider = TracerProvider()
+    trace.set_tracer_provider(tracer_provider)
 
     app = FastAPI(title="FastAPI DDD Template", lifespan=lifespan)
     register_exception_handlers(app)
@@ -52,6 +58,8 @@ def create_app() -> FastAPI:
 
     app.include_router(healthcheck_router)
     app.include_router(auth_router, prefix=API_V1_PREFIX)
+
+    FastAPIInstrumentor.instrument_app(app, tracer_provider=tracer_provider)
 
     return app
 
