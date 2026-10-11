@@ -10,10 +10,10 @@ Production-ready exception handling for FastAPI with:
 
 from app.shared.exceptions.exceptions import (
     AuthenticationError,
-    AuthorizationError,
     BadRequestError,
     ConflictError,
     InternalError,
+    PermissionError,
     ProblemDetailException,
     RateLimitError,
     ResourceNotFoundError,
@@ -23,10 +23,10 @@ from app.shared.exceptions.exceptions import (
 
 __all__ = [
     "AuthenticationError",
-    "AuthorizationError",
     "BadRequestError",
     "ConflictError",
     "InternalError",
+    "PermissionError",
     "ProblemDetailException",
     "RateLimitError",
     "ResourceNotFoundError",

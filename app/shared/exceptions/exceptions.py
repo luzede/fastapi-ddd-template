@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Literal, Unpack, cast
+from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -87,7 +88,7 @@ class ResourceNotFoundError(ProblemDetailException):
     def __init__(
         self,
         resource_type: str,
-        resource_id: str,
+        resource_id: str | UUID,
     ):
         super().__init__(
             status=404,
@@ -95,7 +96,7 @@ class ResourceNotFoundError(ProblemDetailException):
             title="Resource Not Found",
             detail=f"{resource_type} with ID '{resource_id}' was not found",
             resource_type=resource_type,
-            resource_id=resource_id,
+            resource_id=str(resource_id),
         )
 
 
@@ -141,7 +142,7 @@ class BadRequestError(ProblemDetailException):
     def __init__(self, detail: str, code: str | None = None):
         super().__init__(
             status=400,
-            type=ProblemType.INVALID_REQUEST,
+            type=ProblemType.BAD_REQUEST,
             title="Bad Request",
             detail=detail,
             code=code,
@@ -195,7 +196,7 @@ class AuthenticationError(ProblemDetailException):
         self.headers["WWW-Authenticate"] = www_authenticate
 
 
-class AuthorizationError(ProblemDetailException):
+class PermissionError(ProblemDetailException):
     """Insufficient permissions error."""
 
     def __init__(

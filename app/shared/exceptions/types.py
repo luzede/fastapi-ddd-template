@@ -3,7 +3,6 @@
 from datetime import datetime
 from typing import Any, NotRequired
 
-# typing.TypedDict lacks PEP 728 extra_items before Python 3.15
 from typing_extensions import TypedDict
 
 
@@ -32,6 +31,8 @@ class FieldErrorDict(TypedDict, closed=True):
 
 
 class ProblemDetailExceptionExtensionsDict(TypedDict, total=False, closed=True):
+    """Extensions accepted by ProblemDetailException.__init__ (Python types, None allowed)."""
+
     # Common extensions
     trace_id: str
     timestamp: datetime
