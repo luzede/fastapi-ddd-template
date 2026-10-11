@@ -1,1 +1,3 @@
-__all__ = []
+"""
+App-wide configuration and lifecycle wiring.
+"""

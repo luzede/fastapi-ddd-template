@@ -82,6 +82,9 @@ async def http_exception_handler(
     if exc.status_code == 401:
         authentication_error = AuthenticationError(
             detail=exc.detail,
+            www_authenticate=exc.headers.get("WWW-Authenticate", "Bearer")
+            if exc.headers
+            else "Bearer",
         )
         response = await problem_detail_exception_handler(
             request,

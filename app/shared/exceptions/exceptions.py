@@ -1,7 +1,9 @@
 """Exception hierarchy rendering as RFC 9457 Problem Detail."""
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Literal, Unpack, cast
+from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -10,8 +12,8 @@ from app.shared.exceptions.enums import ProblemType
 from app.shared.exceptions.types import (
     FieldErrorDict,
     ProblemDetailExceptionExtensionsDict,
+    ProblemDetailExceptionExtensionsPayload,
     ProblemDetailPayloadWithCommonExtensions,
-    ProblemExceptionExtensionsPayload,
 )
 
 
@@ -40,11 +42,14 @@ class ProblemDetailException(Exception):
 
         self.extensions = extensions
 
+        # Headers for HTTP responses (e.g., Retry-After, WWW-Authenticate)
+        self.headers: dict[str, str] = {}
+
     def to_problem_detail(self) -> ProblemDetailPayloadWithCommonExtensions:
         """Convert to Problem Detail dict."""
 
         none_ommitted_extensions = cast(
-            ProblemExceptionExtensionsPayload,
+            ProblemDetailExceptionExtensionsPayload,
             jsonable_encoder(self.extensions, exclude_none=True),
         )
 
@@ -63,20 +68,17 @@ class ProblemDetailException(Exception):
 
         return problem
 
-    def to_json_response(self) -> JSONResponse:
-        headers: dict[str, str] = {}
-
-        # RFC 9110 §10.2.3: Retry-After applies to 429 and 503 responses
-        # https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3
-        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
-        if self.extensions.get("retry_after") is not None:
-            headers = {"Retry-After": str(self.extensions["retry_after"])}
+    def to_json_response(
+        self, headers: Mapping[str, str] | None = None
+    ) -> JSONResponse:
+        """Convert to FastAPI JSONResponse with RFC 9457 Problem Detail."""
+        response_headers = {**self.headers, **(headers or {})}
 
         return JSONResponse(
             status_code=self.status,
             content=self.to_problem_detail(),
             media_type="application/problem+json",
-            headers=headers or None,
+            headers=response_headers or None,
         )
 
 
@@ -86,7 +88,7 @@ class ResourceNotFoundError(ProblemDetailException):
     def __init__(
         self,
         resource_type: str,
-        resource_id: str,
+        resource_id: str | UUID,
     ):
         super().__init__(
             status=404,
@@ -94,7 +96,7 @@ class ResourceNotFoundError(ProblemDetailException):
             title="Resource Not Found",
             detail=f"{resource_type} with ID '{resource_id}' was not found",
             resource_type=resource_type,
-            resource_id=resource_id,
+            resource_id=str(resource_id),
         )
 
 
@@ -122,6 +124,7 @@ class ConflictError(ProblemDetailException):
         self,
         detail: str,
         conflicting_field: str | None = None,
+        code: str | None = None,
     ):
         super().__init__(
             status=409,
@@ -129,6 +132,20 @@ class ConflictError(ProblemDetailException):
             title="Resource Conflict",
             detail=detail,
             conflicting_field=conflicting_field,
+            code=code,
+        )
+
+
+class BadRequestError(ProblemDetailException):
+    """Semantically invalid request (well-formed but cannot be processed as-is)."""
+
+    def __init__(self, detail: str, code: str | None = None):
+        super().__init__(
+            status=400,
+            type=ProblemType.BAD_REQUEST,
+            title="Bad Request",
+            detail=detail,
+            code=code,
         )
 
 
@@ -146,31 +163,47 @@ class RateLimitError(ProblemDetailException):
             type=ProblemType.RATE_LIMIT_EXCEEDED,
             title="Rate Limit Exceeded",
             detail=f"You have exceeded {limit} requests per {window}",
-            retry_after=retry_after,
             limit=limit,
             window=window,
         )
 
+        # RFC 9110 §10.2.3: Retry-After applies to 429 and 503 responses
+        # https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
+        self.headers["Retry-After"] = str(retry_after)
+
 
 class AuthenticationError(ProblemDetailException):
-    """Authentication required error."""
+    """Authentication required error.
 
-    def __init__(self, detail: str = "Authentication is required"):
+    RFC 9110 §11.6.1: a 401 response MUST carry a `WWW-Authenticate` challenge.
+    """
+
+    def __init__(
+        self,
+        detail: str = "Authentication is required",
+        www_authenticate: str = "Bearer",
+        code: str | None = None,
+    ):
         super().__init__(
             status=401,
             type=ProblemType.AUTHENTICATION_REQUIRED,
             title="Authentication Required",
             detail=detail,
+            code=code,
         )
 
+        self.headers["WWW-Authenticate"] = www_authenticate
 
-class AuthorizationError(ProblemDetailException):
+
+class PermissionError(ProblemDetailException):
     """Insufficient permissions error."""
 
     def __init__(
         self,
         detail: str = "You don't have permission to access this resource",
         required_permission: str | None = None,
+        code: str | None = None,
     ):
         super().__init__(
             status=403,
@@ -178,6 +211,7 @@ class AuthorizationError(ProblemDetailException):
             title="Insufficient Permissions",
             detail=detail,
             required_permission=required_permission,
+            code=code,
         )
 
 
@@ -206,5 +240,10 @@ class ServiceUnavailableError(ProblemDetailException):
             type=ProblemType.SERVICE_UNAVAILABLE,
             title="Service Unavailable",
             detail=detail,
-            retry_after=retry_after,
         )
+
+        # RFC 9110 §10.2.3: Retry-After applies to 429 and 503 responses
+        # https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After
+        if retry_after is not None:
+            self.headers["Retry-After"] = str(retry_after)

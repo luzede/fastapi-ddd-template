@@ -97,5 +97,7 @@ class AsyncRepository[T: Base]:
 
     async def count(self) -> int:
         """Count all entities."""
-        result = await self.session.execute(select(func.count(self.model.id)))
+        result = await self.session.execute(
+            select(func.count()).select_from(self.model)
+        )
         return result.scalar_one()

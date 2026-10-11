@@ -1,22 +1,25 @@
 from datetime import datetime
-from typing import Annotated, cast
+from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from starlette.datastructures import State
+
+if TYPE_CHECKING:
+    from app.modules.auth.mailer import Mailer
 
 
 class AppState(State):
     db_engine: AsyncEngine
     async_session_factory: async_sessionmaker[AsyncSession]
     started_at: datetime
+    mailer: Mailer
+    """Outbound email port used by the auth module (verification, password reset)."""
 
 
 class RequestState(State):
     trace_id: str
     """Set by `TraceContextMiddleware`; available in route handlers and exception handlers via request.state.trace_id."""
-    trace_flags: str
-    """Set by `TraceContextMiddleware`; available in route handlers and exception handlers via request.state.trace_flags."""
 
 
 def get_app_state_from_request(request: Request) -> AppState:

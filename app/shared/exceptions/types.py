@@ -3,7 +3,6 @@
 from datetime import datetime
 from typing import Any, NotRequired
 
-# typing.TypedDict lacks PEP 728 extra_items before Python 3.15
 from typing_extensions import TypedDict
 
 
@@ -20,9 +19,10 @@ class ProblemDetailPayload(TypedDict, extra_items=Any):
 class ProblemDetailPayloadWithCommonExtensions(ProblemDetailPayload):
     trace_id: NotRequired[str]  # Trace ID for debugging
     timestamp: NotRequired[str]  # Timestamp of the error occurrence
+    code: NotRequired[str]  # Machine-readable error code
 
 
-class FieldErrorDict(TypedDict):
+class FieldErrorDict(TypedDict, closed=True):
     """Individual field validation error."""
 
     field: str
@@ -30,10 +30,13 @@ class FieldErrorDict(TypedDict):
     message: str
 
 
-class ProblemDetailExceptionExtensionsDict(TypedDict, total=False):
+class ProblemDetailExceptionExtensionsDict(TypedDict, total=False, closed=True):
+    """Extensions accepted by ProblemDetailException.__init__ (Python types, None allowed)."""
+
     # Common extensions
-    trace_id: str  # Trace ID for debugging
+    trace_id: str
     timestamp: datetime
+    code: str | None
 
     # Resource-specific extensions
     resource_type: str
@@ -46,7 +49,6 @@ class ProblemDetailExceptionExtensionsDict(TypedDict, total=False):
     conflicting_field: str | None
 
     # Rate limit-specific extensions
-    retry_after: int | None
     limit: int
     window: str
 
@@ -54,11 +56,12 @@ class ProblemDetailExceptionExtensionsDict(TypedDict, total=False):
     required_permission: str | None
 
 
-class ProblemExceptionExtensionsPayload(TypedDict, total=False):
-    """Problem exception extensions payload (JSON-serialized, None omitted)."""
+class ProblemDetailExceptionExtensionsPayload(TypedDict, total=False, closed=True):
+    """Problem detail exception extensions payload (JSON-serialized, None omitted)."""
 
     trace_id: str
     timestamp: str
+    code: str
 
     resource_type: str
     resource_id: str
@@ -67,7 +70,6 @@ class ProblemExceptionExtensionsPayload(TypedDict, total=False):
 
     conflicting_field: str
 
-    retry_after: int
     limit: int
     window: str
 

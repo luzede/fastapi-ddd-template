@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.shared.exceptions.enums import ProblemType
+from app.shared.exceptions.enums import ErrorCode, ProblemType
 
 
 class ProblemDetail(BaseModel):
@@ -32,20 +32,14 @@ class ProblemDetail(BaseModel):
     # Common extensions
     trace_id: str | None = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    code: ErrorCode | None = Field(
+        default=None,
+        description="Stable machine-readable error code",
+    )
 
     model_config = ConfigDict(
         extra="allow",
-        json_schema_extra={
-            "example": {
-                "type": ProblemType.VALIDATION_ERROR,
-                "title": "Validation Error",
-                "status": 422,
-                "detail": "The url field is required",
-                "instance": "/api/v1/analyses",
-                "trace_id": "abc123",
-                "timestamp": "2026-01-07T10:30:00Z",
-            }
-        },
+        from_attributes=True,
     )
 
 
@@ -58,7 +52,7 @@ class FieldError(BaseModel):
 
 
 class ValidationProblem(ProblemDetail):
-    """Problem detail with validation errors."""
+    """Problem detail with validation errors. Status code 422 Unprocessable Entity."""
 
     errors: list[FieldError] = Field(
         default_factory=list,
@@ -66,8 +60,53 @@ class ValidationProblem(ProblemDetail):
     )
 
 
+class ResourceNotFoundProblem(ProblemDetail):
+    """Problem detail for resource not found errors. Status code 404 Not Found."""
+
+    resource_type: str = Field(
+        description="Type of the resource that was not found",
+    )
+    resource_id: str = Field(
+        description="ID of the resource that was not found",
+    )
+
+
+class BadRequestProblem(ProblemDetail):
+    """Problem detail for bad request errors. Status code 400 Bad Request."""
+
+
+class ConflictProblem(ProblemDetail):
+    """Problem detail for conflict errors. Status code 409 Conflict."""
+
+    conflicting_field: str | None = Field(
+        default=None,
+        description="Field that caused the conflict, if applicable",
+    )
+
+
+class AuthenticationProblem(ProblemDetail):
+    """Problem detail for authentication errors. Status code 401 Unauthorized."""
+
+    required_permission: str | None = Field(
+        default=None,
+        description="The permission required to perform the requested action",
+    )
+
+
+class PermissionProblem(ProblemDetail):
+    """Problem detail for authorization errors. Status code 403 Forbidden."""
+
+
+class InternalServerProblem(ProblemDetail):
+    """Problem detail for internal server errors. Status code 500 Internal Server Error."""
+
+
+class ServiceUnavailableProblem(ProblemDetail):
+    """Problem detail for service unavailable errors. Status code 503 Service Unavailable."""
+
+
 class RateLimitProblem(ProblemDetail):
-    """Problem detail for rate limiting."""
+    """Problem detail for rate limiting. Status code 429 Too Many Requests."""
 
     retry_after: int = Field(description="Seconds until retry is allowed")
     limit: int = Field(description="Request limit")
