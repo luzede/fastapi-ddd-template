@@ -1,4 +1,3 @@
-import logging
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
@@ -8,11 +7,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import get_settings
-from app.modules.auth.mailer import LoggingMailer
 from app.shared.db.session import create_async_session_factory
 from app.shared.state import AppState
-
-logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -52,10 +48,6 @@ async def lifespan(app: FastAPI):
     # Verify database connection
     async with app.state.async_session_factory() as session:
         await session.execute(text("SELECT 1"))
-
-    # Outbound email. Replace with a real provider adapter in production.
-    app.state.mailer = LoggingMailer()
-    logger.warning("Using LoggingMailer: verification and reset emails are only logged")
 
     app.state.started_at = datetime.now(UTC)
     yield
