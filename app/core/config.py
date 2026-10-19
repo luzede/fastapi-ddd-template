@@ -5,7 +5,7 @@ from enum import IntEnum, StrEnum
 from functools import lru_cache
 from typing import Any, Literal, override
 
-from pydantic import BaseModel, HttpUrl, Secret, field_validator
+from pydantic import BaseModel, Field, HttpUrl, Secret, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
@@ -40,7 +40,7 @@ class DatabaseSettings(BaseModel):
 class ServerSettings(BaseModel):
     host: str = "localhost"
     port: int = 8000
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
 
 
 class AuthSettings(BaseModel):
