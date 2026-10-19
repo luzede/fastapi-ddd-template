@@ -1,14 +1,12 @@
 import uvicorn
-from alembic import command
-from alembic.config import Config
 from fastapi import APIRouter, FastAPI
-from opentelemetry import trace
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.sdk.trace import TracerProvider
 from starlette.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.lifespan import lifespan
+from app.core.logging import setup_logging
+from app.core.opentelemetry import setup_opentelemetry
 from app.modules.auth.router import router as auth_router
 from app.modules.health.router import router as healthcheck_router
 from app.shared.exceptions.handlers import register_exception_handlers
@@ -19,16 +17,19 @@ from app.shared.middleware import (
 )
 
 
-def run_migrations() -> None:
-    alembic_cfg = Config("alembic.ini")
-    command.upgrade(alembic_cfg, "head")
-
-
 def create_app() -> FastAPI:
     settings = get_settings()
 
-    tracer_provider = TracerProvider()
-    trace.set_tracer_provider(tracer_provider)
+    telemetry = setup_opentelemetry(
+        service_name=settings.otel_service_name,
+        otlp_endpoint=settings.otel_exporter_otlp_endpoint,
+        environment=settings.environment,
+    )
+    setup_logging(
+        environment=settings.environment,
+        log_level=settings.log_level,
+        logger_provider=telemetry.logger_provider,
+    )
 
     app = FastAPI(title="FastAPI DDD Template", lifespan=lifespan)
     register_exception_handlers(app)
@@ -60,7 +61,7 @@ def create_app() -> FastAPI:
     app.include_router(healthcheck_router)
     app.include_router(v1_router)
 
-    FastAPIInstrumentor.instrument_app(app, tracer_provider=tracer_provider)
+    FastAPIInstrumentor.instrument_app(app, tracer_provider=telemetry.tracer_provider)
 
     return app
 
@@ -68,10 +69,15 @@ def create_app() -> FastAPI:
 def main() -> None:
     settings = get_settings()
 
-    # Run database migrations
-    run_migrations()
-
-    uvicorn.run(create_app(), host=settings.server.host, port=settings.server.port)
+    uvicorn.run(
+        create_app(),
+        host=settings.server.host,
+        port=settings.server.port,
+        # Logging is configured by setup_logging; don't let uvicorn install its own handlers
+        log_config=None,
+        # LoggingMiddleware already logs every request (with duration and trace IDs)
+        access_log=False,
+    )
 
 
 if __name__ == "__main__":

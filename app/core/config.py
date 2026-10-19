@@ -1,10 +1,11 @@
+import logging
 import re
 from datetime import timedelta
 from enum import IntEnum, StrEnum
 from functools import lru_cache
-from typing import Any, Literal
+from typing import Any, Literal, override
 
-from pydantic import BaseModel, Secret, computed_field, field_validator
+from pydantic import BaseModel, HttpUrl, Secret, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
@@ -24,7 +25,6 @@ class DatabaseSettings(BaseModel):
     pool_recycle: int = 1800  # recreate connections after 30 minutes
     pool_timeout: int = 30  # seconds to wait for a connection from the pool
 
-    @computed_field
     @property
     def url(self) -> URL:
         return URL.create(
@@ -92,18 +92,36 @@ class AuthSettings(BaseModel):
 
 
 class LogLevel(IntEnum):
-    CRITICAL = 50
-    ERROR = 40
-    WARNING = 30
-    INFO = 20
-    DEBUG = 10
-    NOTSET = 0
+    CRITICAL = logging.CRITICAL
+    ERROR = logging.ERROR
+    WARNING = logging.WARNING
+    INFO = logging.INFO
+    DEBUG = logging.DEBUG
+    NOTSET = logging.NOTSET
+
+    @classmethod
+    @override
+    def _missing_(cls, value: object) -> LogLevel | None:
+        if isinstance(value, str):
+            normalized = value.strip().upper()
+            if normalized == "WARN":
+                return cls.WARNING
+            return cls.__members__.get(normalized)
+        return None
 
 
 class Environment(StrEnum):
     DEVELOPMENT = "development"
+    STAGING = "staging"
     PRODUCTION = "production"
     TESTING = "testing"
+
+    @classmethod
+    @override
+    def _missing_(cls, value: object) -> Environment | None:
+        if isinstance(value, str):
+            return cls.__members__.get(value.strip().upper())
+        return None
 
 
 class Settings(BaseSettings):
@@ -117,8 +135,13 @@ class Settings(BaseSettings):
     server: ServerSettings
     auth: AuthSettings
 
-    log_level: LogLevel = LogLevel.INFO
+    log_level: LogLevel | None = None
     environment: Environment = Environment.DEVELOPMENT
+
+    # Standard OpenTelemetry env var names (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT)
+    otel_service_name: str = "fastapi-ddd-template"
+    otel_exporter_otlp_endpoint: HttpUrl | None = None
+    """OTLP/HTTP collector base URL, e.g. http://localhost:4318. Unset: logs go to the terminal only."""
 
 
 @lru_cache(maxsize=1)

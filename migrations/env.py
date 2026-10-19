@@ -2,7 +2,7 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import URL, pool
+from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -23,14 +23,7 @@ if config.config_file_name is not None:
 settings = get_settings()
 config.set_main_option(
     "sqlalchemy.url",
-    URL.create(
-        drivername="postgresql+asyncpg",
-        username=settings.db.username,
-        password=settings.db.password.get_secret_value(),
-        host=settings.db.host,
-        port=settings.db.port,
-        database=settings.db.name,
-    ).render_as_string(hide_password=False),
+    settings.db.url.render_as_string(hide_password=False),
 )
 
 target_metadata = Base.metadata
