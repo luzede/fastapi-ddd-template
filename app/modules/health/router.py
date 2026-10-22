@@ -24,7 +24,7 @@ async def liveness_probe() -> HealthResponse:
 async def readiness_probe(session: SessionDep) -> HealthResponse:
     try:
         await session.execute(text("SELECT 1"))
-    except SQLAlchemyError:
-        raise ServiceUnavailableError(detail="Database is unreachable")
+    except (SQLAlchemyError, OSError) as e:
+        raise ServiceUnavailableError(detail="Database is unreachable") from e
 
     return HealthResponse(status="ready")
