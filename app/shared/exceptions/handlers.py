@@ -28,7 +28,9 @@ async def problem_detail_exception_handler(
 ) -> JSONResponse:
     """Handle ProblemException subclasses."""
 
-    trace_id = request.state.trace_id
+    # TraceContextMiddleware sets request.state.trace_id;
+    # if present, include it in the problem detail response
+    trace_id: str | None = getattr(request.state, "trace_id", None)
     if exc.instance is None:
         exc.instance = request.url.path
     if trace_id:
@@ -38,7 +40,7 @@ async def problem_detail_exception_handler(
 
 
 async def request_validation_exception_handler(
-    request: Request[RequestState],
+    request: Request,
     exc: RequestValidationError,
 ) -> JSONResponse:
     """Handle Pydantic validation errors."""
@@ -73,7 +75,7 @@ async def request_validation_exception_handler(
 
 
 async def http_exception_handler(
-    request: Request[RequestState],
+    request: Request,
     exc: HTTPException,
 ) -> JSONResponse:
     """Handle Starlette/FastAPI HTTPException errors."""
@@ -117,8 +119,8 @@ async def http_exception_handler(
 
 
 async def generic_exception_handler(
-    request: Request[RequestState],
-    _: Exception,
+    request: Request,
+    exc: Exception,
 ) -> JSONResponse:
     """Handle unexpected exceptions."""
 
@@ -144,4 +146,4 @@ def register_exception_handlers(app: FastAPI) -> None:
         request_validation_exception_handler,  # type: ignore
     )
     app.add_exception_handler(ProblemDetailException, problem_detail_exception_handler)  # type: ignore
-    app.add_exception_handler(Exception, generic_exception_handler)  # type: ignore
+    app.add_exception_handler(Exception, generic_exception_handler)
