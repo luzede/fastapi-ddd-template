@@ -50,7 +50,7 @@ class AsyncRepository[T: Base]:
         items = list(result.scalars().all())
 
         next_cursor: UUID | None = None
-        if len(items) > limit:
+        if len(items) > limit >= 1:
             # Extra row is the probe for whether another page exists
             items = items[:limit]
             next_cursor = items[-1].id
