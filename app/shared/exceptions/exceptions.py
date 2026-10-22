@@ -48,7 +48,7 @@ class ProblemDetailException(Exception):
     def to_problem_detail(self) -> ProblemDetailPayloadWithCommonExtensions:
         """Convert to Problem Detail dict."""
 
-        none_ommitted_extensions = cast(
+        none_omitted_extensions = cast(
             ProblemDetailExceptionExtensionsPayload,
             jsonable_encoder(self.extensions, exclude_none=True),
         )
@@ -57,7 +57,7 @@ class ProblemDetailException(Exception):
             "type": self.type,
             "title": self.title,
             "status": self.status,
-            **none_ommitted_extensions,
+            **none_omitted_extensions,
         }
 
         # Omit fields with 'None' values to comply with RFC 9457
