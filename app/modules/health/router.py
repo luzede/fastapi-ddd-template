@@ -1,7 +1,5 @@
 """Liveness and readiness probes."""
 
-import logging
-
 from fastapi import APIRouter
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -10,26 +8,23 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.shared.db.session import SessionDep
 from app.shared.exceptions import ServiceUnavailableError
 
-logger = logging.getLogger(__name__)
-
-router = APIRouter(prefix="/healthcheck", tags=["healthcheck"])
+router = APIRouter(prefix="/health", tags=["health"])
 
 
-class HealthCheckResponse(BaseModel):
+class HealthResponse(BaseModel):
     status: str
 
 
-@router.get("/live", response_model=HealthCheckResponse)
-async def liveness_probe() -> HealthCheckResponse:
-    return HealthCheckResponse(status="alive")
+@router.get("/live", response_model=HealthResponse)
+async def liveness_probe() -> HealthResponse:
+    return HealthResponse(status="live")
 
 
-@router.get("/ready", response_model=HealthCheckResponse)
-async def healthcheck(session: SessionDep) -> HealthCheckResponse:
+@router.get("/ready", response_model=HealthResponse)
+async def readiness_probe(session: SessionDep) -> HealthResponse:
     try:
         await session.execute(text("SELECT 1"))
     except SQLAlchemyError:
-        logger.exception("Healthcheck database probe failed")
         raise ServiceUnavailableError(detail="Database is unreachable")
 
-    return HealthCheckResponse(status="healthy")
+    return HealthResponse(status="ready")
