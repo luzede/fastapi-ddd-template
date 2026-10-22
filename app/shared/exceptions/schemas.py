@@ -108,6 +108,5 @@ class ServiceUnavailableProblem(ProblemDetail):
 class RateLimitProblem(ProblemDetail):
     """Problem detail for rate limiting. Status code 429 Too Many Requests."""
 
-    retry_after: int = Field(description="Seconds until retry is allowed")
     limit: int = Field(description="Request limit")
     window: str = Field(description="Time window for limit")
