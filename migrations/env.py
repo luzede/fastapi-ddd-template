@@ -23,7 +23,7 @@ if config.config_file_name is not None:
 settings = get_settings()
 config.set_main_option(
     "sqlalchemy.url",
-    settings.db.url.render_as_string(hide_password=False),
+    settings.db.url.render_as_string(hide_password=False).replace("%", "%%"),
 )
 
 target_metadata = Base.metadata
