@@ -87,14 +87,14 @@ class ConflictProblem(ProblemDetail):
 class AuthenticationProblem(ProblemDetail):
     """Problem detail for authentication errors. Status code 401 Unauthorized."""
 
+
+class PermissionProblem(ProblemDetail):
+    """Problem detail for authorization errors. Status code 403 Forbidden."""
+
     required_permission: str | None = Field(
         default=None,
         description="The permission required to perform the requested action",
     )
-
-
-class PermissionProblem(ProblemDetail):
-    """Problem detail for authorization errors. Status code 403 Forbidden."""
 
 
 class InternalServerProblem(ProblemDetail):
