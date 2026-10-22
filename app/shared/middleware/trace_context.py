@@ -10,7 +10,7 @@ from starlette.responses import Response
 
 
 class TraceContextMiddleware(BaseHTTPMiddleware):
-    """Resolve request.state.trace_id from traceparent or X-Request-ID, minting one if absent."""
+    """Resolve request.state.trace_id from traceparent, minting one if absent."""
 
     @override
     async def dispatch(
