@@ -1,5 +1,6 @@
 """Email + password credential provider: sign-up, sign-in, and password lifecycle."""
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
@@ -61,7 +62,9 @@ class AuthService:
     ):
         self._users = users
 
-    async def verify_password(self, user_id: UUID, password: str) -> User:
+    async def verify_password(
+        self, user_id: UUID, password: str, upgrade: bool = True
+    ) -> User:
         """Verify `password` against the user's credential account; upgrades legacy hashes in place."""
         user = await self._users.get(user_id)
         if user is None:
@@ -69,12 +72,12 @@ class AuthService:
                 resource_type=self._users.model.__name__, resource_id=str(user_id)
             )
 
-        valid, updated_hash = _password_hasher.verify_and_update(
-            password, user.password_hash
+        valid, updated_hash = await asyncio.to_thread(
+            _password_hasher.verify_and_update, password, user.password_hash
         )
         if not valid:
             raise BadRequestError("Invalid password")
-        if updated_hash:
+        if updated_hash and upgrade:
             await self._users.update(user, password_hash=updated_hash)
         return user
 
@@ -112,8 +115,8 @@ class AuthService:
             _password_hasher.verify_and_update(password, _DUMMY_HASH)
             raise invalid
 
-        valid, updated_hash = _password_hasher.verify_and_update(
-            password, user.password_hash
+        valid, updated_hash = await asyncio.to_thread(
+            _password_hasher.verify_and_update, password, user.password_hash
         )
         if not valid:
             raise invalid
@@ -130,7 +133,7 @@ class AuthService:
         new_password: str,
     ) -> None:
         validate_password_policy(new_password)
-        user = await self.verify_password(user_id, current_password)
+        user = await self.verify_password(user_id, current_password, upgrade=False)
         await self._users.update(
             user, password_hash=_password_hasher.hash(new_password)
         )
