@@ -2,6 +2,7 @@
 
 from http import HTTPStatus
 
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -19,11 +20,12 @@ from app.shared.exceptions.exceptions import (
 from app.shared.exceptions.types import (
     FieldErrorDict,
 )
-from app.shared.state import RequestState
+
+logger = structlog.stdlib.get_logger()
 
 
 async def problem_detail_exception_handler(
-    request: Request[RequestState],
+    request: Request,
     exc: ProblemDetailException,
 ) -> JSONResponse:
     """Handle ProblemException subclasses."""
@@ -53,10 +55,10 @@ async def request_validation_exception_handler(
         loc = error["loc"]
         if len(loc) > 1 and loc[0] == "body":
             field_path = ".".join(str(x) for x in loc[1:])
-        elif len(loc) > 1:
+        elif loc:
             field_path = ".".join(str(x) for x in loc)
         else:
-            field_path = str(loc[0])
+            field_path = ""
 
         errors.append(
             {

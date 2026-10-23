@@ -1,4 +1,6 @@
-from typing import NotRequired, TypedDict
+from typing import NotRequired
+
+from typing_extensions import TypedDict
 
 
 class MyJWTClaimsPayload(TypedDict, closed=True):

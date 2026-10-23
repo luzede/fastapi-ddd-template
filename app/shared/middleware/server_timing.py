@@ -19,10 +19,6 @@ class ServerTimingMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         duration = time.perf_counter() - start
 
-        # Store duration in request.state for access
-        # in LoggingMiddleware
-        request.state.duration = duration
-
         # W3C Server-Timing: dur is in milliseconds
         response.headers["Server-Timing"] = f"total;dur={duration * 1000:.2f}"
 

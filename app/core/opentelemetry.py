@@ -1,6 +1,7 @@
 """OpenTelemetry providers for traces and logs, exported over OTLP/HTTP when configured."""
 
 from dataclasses import dataclass
+from functools import lru_cache
 
 from opentelemetry import trace
 from opentelemetry._logs import set_logger_provider
@@ -15,7 +16,6 @@ from opentelemetry.semconv.attributes.deployment_attributes import (
     DEPLOYMENT_ENVIRONMENT_NAME,
 )
 from opentelemetry.semconv.attributes.service_attributes import SERVICE_NAME
-from pydantic import HttpUrl
 
 from app.core.config import Environment
 
@@ -27,9 +27,10 @@ class Telemetry:
     """None when no OTLP endpoint is configured or in the testing environment."""
 
 
+@lru_cache(maxsize=1)
 def setup_opentelemetry(
     service_name: str,
-    otlp_endpoint: HttpUrl | None,
+    otlp_endpoint: str | None,
     environment: Environment,
 ) -> Telemetry:
     # Export over the network whenever an OTLP endpoint is configured, except during tests
@@ -49,8 +50,8 @@ def setup_opentelemetry(
     tracer_provider = TracerProvider(resource=resource)
     logger_provider: LoggerProvider | None = None
 
-    if should_export_otlp and otlp_endpoint is not None:
-        base_endpoint = otlp_endpoint.encoded_string().rstrip("/")
+    if should_export_otlp:
+        base_endpoint = otlp_endpoint.rstrip("/")
 
         tracer_provider.add_span_processor(
             BatchSpanProcessor(OTLPSpanExporter(endpoint=f"{base_endpoint}/v1/traces"))

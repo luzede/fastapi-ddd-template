@@ -9,7 +9,7 @@ from app.modules.auth.schemas import MyJWTClaims
 from app.shared.exceptions import AuthenticationError
 from app.shared.exceptions.enums import ErrorCode
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 
 type TokenDep = Annotated[str, Depends(oauth2_scheme)]
@@ -37,7 +37,7 @@ def get_jwt_claims(
         raise AuthenticationError(
             f"Invalid JWT: {e!s}",
             code=ErrorCode.INVALID_JWT_TOKEN,
-        )
+        ) from e
 
     return MyJWTClaims.model_validate(payload)
 

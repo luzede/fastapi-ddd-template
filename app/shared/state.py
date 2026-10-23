@@ -1,20 +1,15 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import Annotated, cast
 
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from starlette.datastructures import State
-
-if TYPE_CHECKING:
-    from app.modules.auth.mailer import Mailer
 
 
 class AppState(State):
     db_engine: AsyncEngine
     async_session_factory: async_sessionmaker[AsyncSession]
     started_at: datetime
-    mailer: Mailer
-    """Outbound email port used by the auth module (verification, password reset)."""
 
 
 class RequestState(State):

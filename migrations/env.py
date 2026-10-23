@@ -8,7 +8,10 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Import every module model so autogenerate sees them
 from app.core.config import get_settings
+from app.modules.user.model import User
 from app.shared.db.base import Base
+
+models = (User,)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

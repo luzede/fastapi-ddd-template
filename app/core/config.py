@@ -5,7 +5,7 @@ from enum import IntEnum, StrEnum
 from functools import lru_cache
 from typing import Any, Literal, override
 
-from pydantic import BaseModel, Field, HttpUrl, Secret, field_validator
+from pydantic import BaseModel, Field, Secret, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
@@ -40,6 +40,7 @@ class DatabaseSettings(BaseModel):
 class ServerSettings(BaseModel):
     host: str = "localhost"
     port: int = 8000
+    workers: int = Field(1, ge=1)
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
 
 
@@ -51,10 +52,10 @@ class AuthSettings(BaseModel):
     password_max_length: int = 128
 
     jwt_expires_in: timedelta = timedelta(minutes=60)
-    jwt_secret: Secret[str] = Secret("jwt-secret")
+    jwt_secret: Secret[str]
     jwt_algorithm: Literal["HS256"] = "HS256"
 
-    @field_validator("secret", mode="after")
+    @field_validator("secret", "jwt_secret", mode="after")
     @classmethod
     def secret_min_length(cls, value: Secret[str]) -> Secret[str]:
         if len(value.get_secret_value()) < 32:
@@ -67,17 +68,22 @@ class AuthSettings(BaseModel):
         if isinstance(value, timedelta):
             return value
 
-        # If passed as integer or numeric string (seconds)
-        if isinstance(value, (int, float)) or (
+        # If passed as integer, float (excluding bool), or numeric string (seconds)
+        if (isinstance(value, (int, float)) and not isinstance(value, bool)) or (
             isinstance(value, str) and value.isdigit()
         ):
-            return timedelta(seconds=int(value))
+            seconds = float(value)
+            if seconds <= 0:
+                raise ValueError("Duration must be greater than 0")
+            return timedelta(seconds=seconds)
 
         # Parse strings like "15m", "1h", "7d", "30s"
         if isinstance(value, str):
             match = re.match(r"^(\d+)([smhd])$", value.strip().lower())
             if match:
                 amount, unit = int(match.group(1)), match.group(2)
+                if amount <= 0:
+                    raise ValueError("Duration must be greater than 0")
                 units = {
                     "s": "seconds",
                     "m": "minutes",
@@ -132,7 +138,7 @@ class Settings(BaseSettings):
     )
 
     db: DatabaseSettings
-    server: ServerSettings
+    server: ServerSettings = Field(default_factory=ServerSettings)
     auth: AuthSettings
 
     log_level: LogLevel | None = None
@@ -140,7 +146,7 @@ class Settings(BaseSettings):
 
     # Standard OpenTelemetry env var names (OTEL_SERVICE_NAME, OTEL_EXPORTER_OTLP_ENDPOINT)
     otel_service_name: str = "fastapi-ddd-template"
-    otel_exporter_otlp_endpoint: HttpUrl | None = None
+    otel_exporter_otlp_endpoint: str | None = None
     """OTLP/HTTP collector base URL, e.g. http://localhost:4318. Unset: logs go to the terminal only."""
 
 

@@ -45,10 +45,13 @@ async def lifespan(app: FastAPI):
     # Create async session factory
     app.state.async_session_factory = create_async_session_factory(app.state.db_engine)
 
-    # Verify database connection
-    async with app.state.async_session_factory() as session:
-        await session.execute(text("SELECT 1"))
+    try:
+        # Verify database connection
+        async with app.state.async_session_factory() as session:
+            await session.execute(text("SELECT 1"))
 
-    app.state.started_at = datetime.now(UTC)
-    yield
-    await app.state.db_engine.dispose()
+        app.state.started_at = datetime.now(UTC)
+        yield
+    finally:
+        SQLAlchemyInstrumentor().uninstrument()
+        await app.state.db_engine.dispose()
