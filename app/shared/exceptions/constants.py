@@ -6,6 +6,7 @@ from app.shared.exceptions.schemas import (
     PermissionProblem,
     RateLimitProblem,
     ResourceNotFoundProblem,
+    ServiceUnavailableProblem,
     ValidationProblem,
 )
 
@@ -54,4 +55,9 @@ PROBLEM_429 = {
 PROBLEM_500 = {
     "model": InternalServerProblem,
     "description": "Internal Server Error",
+}
+
+PROBLEM_503 = {
+    "model": ServiceUnavailableProblem,
+    "description": "Service Unavailable",
 }

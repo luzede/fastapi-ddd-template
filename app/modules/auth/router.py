@@ -17,6 +17,7 @@ from app.shared.exceptions.constants import (
     PROBLEM_401,
     PROBLEM_404,
     PROBLEM_409,
+    PROBLEM_422,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -38,7 +39,7 @@ async def login_for_access_token(
     "/sign-up/email",
     response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED,
-    responses={400: PROBLEM_400, 409: PROBLEM_409},
+    responses={400: PROBLEM_400, 409: PROBLEM_409, 422: PROBLEM_422},
     summary="Register with email and password",
 )
 async def sign_up(
@@ -57,7 +58,7 @@ async def sign_up(
 @router.post(
     "/change-password",
     status_code=status.HTTP_204_NO_CONTENT,
-    responses={400: PROBLEM_400, 401: PROBLEM_401, 404: PROBLEM_404},
+    responses={400: PROBLEM_400, 401: PROBLEM_401, 404: PROBLEM_404, 422: PROBLEM_422},
     summary="Change password (requires current password)",
 )
 async def change_password(

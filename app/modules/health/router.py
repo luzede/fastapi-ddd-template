@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.shared.db.session import SessionDep
 from app.shared.exceptions import ServiceUnavailableError
+from app.shared.exceptions.constants import PROBLEM_503
 
 router = APIRouter(prefix="/health", tags=["health"])
 
@@ -20,7 +21,7 @@ async def liveness_probe() -> HealthResponse:
     return HealthResponse(status="live")
 
 
-@router.get("/ready", response_model=HealthResponse)
+@router.get("/ready", response_model=HealthResponse, responses={503: PROBLEM_503})
 async def readiness_probe(session: SessionDep) -> HealthResponse:
     try:
         await session.execute(text("SELECT 1"))
