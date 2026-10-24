@@ -2,7 +2,6 @@
 
 from http import HTTPStatus
 
-import structlog
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -20,8 +19,6 @@ from app.shared.exceptions.exceptions import (
 from app.shared.exceptions.types import (
     FieldErrorDict,
 )
-
-logger = structlog.stdlib.get_logger()
 
 
 async def problem_detail_exception_handler(
