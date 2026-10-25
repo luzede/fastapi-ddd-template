@@ -3,7 +3,7 @@
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.shared.db.base import Base
@@ -91,9 +91,9 @@ class AsyncRepository[T: Base]:
     async def exists(self, entity_id: UUID) -> bool:
         """Check if entity exists."""
         result = await self.session.execute(
-            select(self.model.id).where(self.model.id == entity_id)
+            select(exists().where(self.model.id == entity_id))
         )
-        return result.scalar_one_or_none() is not None
+        return result.scalar_one()
 
     async def count(self) -> int:
         """Count all entities."""
