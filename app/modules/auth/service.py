@@ -157,7 +157,7 @@ class AuthService:
         return jwt.encode(
             payload=dict(payload),
             key=auth_settings.jwt_secret.get_secret_value(),
-            algorithm="HS256",
+            algorithm=auth_settings.jwt_algorithm,
         )
 
 
