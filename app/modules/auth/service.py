@@ -94,10 +94,11 @@ class AuthService:
             raise email_conflict()
 
         try:
+            password_hash = await asyncio.to_thread(_password_hasher.hash, password)
             user = await self._users.create(
                 name=name,
                 email=email.lower(),
-                password_hash=_password_hasher.hash(password),
+                password_hash=password_hash,
             )
 
             return user
@@ -112,7 +113,9 @@ class AuthService:
         user = await self._users.get_by_email(email)
         if user is None:
             # Burn comparable time so a missing user is indistinguishable from a wrong password
-            _password_hasher.verify_and_update(password, _DUMMY_HASH)
+            await asyncio.to_thread(
+                _password_hasher.verify_and_update, password, _DUMMY_HASH
+            )
             raise invalid
 
         valid, updated_hash = await asyncio.to_thread(
@@ -134,9 +137,8 @@ class AuthService:
     ) -> None:
         validate_password_policy(new_password)
         user = await self.verify_password(user_id, current_password, upgrade=False)
-        await self._users.update(
-            user, password_hash=_password_hasher.hash(new_password)
-        )
+        new_password_hash = await asyncio.to_thread(_password_hasher.hash, new_password)
+        await self._users.update(user, password_hash=new_password_hash)
 
     def create_access_token(self, user: User) -> str:
         """Create a JWT access token for the given user."""
